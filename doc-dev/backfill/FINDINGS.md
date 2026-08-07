@@ -32,16 +32,27 @@
 **Tag:** `[PERLU-KEPUTUSAN]`
 **Lokasi:** `fr_business_directory/models/siret_wizard.py:113`, `:128`
 **Ref:** AC-02 (`_fetch_siret_data` error path)
-**Deskripsi:** `siret_wizard.py` memanggil `_logger.warning(...)` (baris 113, kasus `siege` bukan
-dict) dan `_logger.error(...)` (baris 128, blok `except requests.RequestException`) — tapi file ini
-TIDAK PERNAH `import logging` maupun mendefinisikan `_logger = logging.getLogger(__name__)`. Import
-di kepala file hanya `from odoo import fields, models, api, _`, `import requests`, `import urllib`.
-**Dampak:** Begitu salah satu dari dua jalur ini benar-benar terpicu (struktur respons API
-gouv.fr berubah, atau request gagal/timeout ke `recherche-entreprises.api.gouv.fr`), Python akan
-raise `NameError: name '_logger' is not defined` — exception BARU yang menutupi akar masalah asli
-(kegagalan API eksternal) yang justru sedang coba dicatat. Karena kode ini bergantung ke API pihak
-ketiga di luar kendali modul, jalur error ini genuinely bisa terpicu di produksi (rate limit, API
-down, perubahan skema respons).
+**Deskripsi:** `siret_wizard.py` memanggil `_logger.warning(...)` (baris 113) dan `_logger.error(...)`
+(baris 128, blok `except requests.RequestException`) — tapi file ini TIDAK PERNAH `import logging`
+maupun mendefinisikan `_logger = logging.getLogger(__name__)`. Import di kepala file hanya
+`from odoo import fields, models, api, _`, `import requests`, `import urllib`.
+
+**Kondisi pemicu baris 113 (dikoreksi 2026-08-07 setelah dites nyata via Docker — bukan "siege bukan
+dict" seperti draf awal):** baris 112 `else` berpasangan dengan `if name and siret:` (baris 57), BUKAN
+dengan `if isinstance(siege, dict):` (baris 51) — cek indentasi. Kalau `siege` BUKAN dict sama sekali,
+kode diam-diam SKIP result itu (tidak ada else untuk `isinstance` check, tidak ada log/error apapun —
+gap senyap tersendiri, lihat catatan tambahan di bawah). `_logger.warning` HANYA terpicu kalau `siege`
+ADALAH dict yang valid TAPI `nom_complet` atau `siege.siret` kosong/hilang dari response.
+**Dampak:** Begitu salah satu dari dua jalur ini benar-benar terpicu (respons API gouv.fr kehilangan
+`nom_complet`/`siret` pada suatu hasil, atau request gagal/timeout ke
+`recherche-entreprises.api.gouv.fr`), Python akan raise `NameError: name '_logger' is not defined` —
+exception BARU yang menutupi akar masalah asli (kegagalan/anomali API eksternal) yang justru sedang
+coba dicatat. Karena kode ini bergantung ke API pihak ketiga di luar kendali modul, jalur error ini
+genuinely bisa terpicu di produksi (rate limit, API down, perubahan skema respons).
+**Temuan tambahan (senyap, ditemukan sama waktu):** kalau `siege` BUKAN dict sama sekali (bentuk
+respons API berubah drastis), result itu di-skip TANPA log/warning/error apapun — beda dari F-01,
+ini bukan `NameError`, tapi silent data loss (result hilang dari hasil pencarian tanpa jejak). Dicatat
+di sini sebagai bagian F-01 karena root cause & lokasi kode berdekatan, bukan finding terpisah.
 **Rekomendasi:** tambahkan `import logging` + `_logger = logging.getLogger(__name__)` di kepala file.
 **Keputusan pemilik modul:** *(kosong — diisi manusia)*
 
@@ -152,6 +163,14 @@ umum untuk mailbox shared/support).
 `processed_ids` di kedua jalur skip), ATAU re-apply `\Seen` untuk email yang di-skip terlepas dari
 `mark_read` (supaya tidak masuk `(UNSEEN)` search lagi) — pilih salah satu, keduanya menutup celah
 ini.
+**Perbandingan dengan core:** implementasi ASLI Odoo (`mail/models/fetchmail.py`,
+`FetchmailServer.fetch_mail()`) memanggil `imap_server.store(num, '+FLAGS', '\\Seen')`
+TANPA SYARAT setelah tiap pesan diproses (berhasil ATAU gagal) — jadi di core, SEMUA pesan yang
+sudah pernah di-fetch selalu berakhir `\Seen`, tidak pernah muncul lagi di search `(UNSEEN)`
+berikutnya, terlepas hasil pemrosesannya. Modul ini SENGAJA mengubah itu jadi kondisional
+(`mark_read`) untuk fitur "biarkan tetap unread" — tapi perubahan itu tidak diikuti penyesuaian
+pada jalur SKIP, sehingga kombinasi `mark_read=False` (default) + skip menciptakan kondisi yang
+TIDAK PERNAH ada di core: pesan yang fetch-nya "selesai" tapi tetap `UNSEEN` SELAMANYA.
 **Keputusan pemilik modul:** *(kosong — diisi manusia)*
 
 ---
@@ -168,6 +187,14 @@ padahal seharusnya cukup `count` polos.
 kalau `failed > count`) — siapapun yang memonitor log ini untuk kebutuhan operasional/alerting akan
 mendapat angka yang menyesatkan.
 **Rekomendasi:** ganti `(count - failed)` jadi `count` di baris log.
+**Asal-usul bug (dikonfirmasi baca source core):** baris log ini adalah adaptasi LANGSUNG dari
+`mail/models/fetchmail.py` core Odoo, yang punya baris log PERSIS SAMA formatnya:
+`"...%d succeeded, %d failed.", count, ..., (count - failed), failed)`. TAPI di core, semantik
+`count` BEDA — core meng-increment `count += 1` TANPA SYARAT untuk setiap pesan yang di-fetch
+(berhasil atau gagal, `count += 1` di luar try/except), sehingga `count - failed` di core memang
+sama dengan jumlah yang berhasil. Modul ini meng-copy format log yang sama TAPI mengubah `count`
+jadi HANYA increment di jalur sukses (lihat baris 122) tanpa menyesuaikan rumus log — inkonsistensi
+semantik antara kode yang diubah dan log yang tidak ikut disesuaikan.
 **Keputusan pemilik modul:** *(kosong — diisi manusia)*
 
 ---

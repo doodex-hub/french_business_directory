@@ -31,12 +31,20 @@ ter-encode>&page=1&per_page=25&limite_matching_etablissements=100`, dan `result_
 response.
 
 **AC-02-02** — ref `BR-02`, F-01 `[PERLU-KEPUTUSAN]`
-Given API `recherche-entreprises.api.gouv.fr` mengembalikan error HTTP atau struktur response yang
-tidak terduga (`siege` bukan dict)
+Given API `recherche-entreprises.api.gouv.fr` mengembalikan error HTTP, ATAU mengembalikan satu
+hasil dengan `siege` berbentuk dict yang valid tapi `nom_complet`/`siret` kosong
 When `_fetch_siret_data` menangani kondisi ini
 Then kode SEHARUSNYA mencatat warning/error lewat `_logger` — TAPI SEKARANG raise `NameError`
 karena `_logger` tidak pernah diimpor (lihat F-01 `FINDINGS.md`). Wizard tetap terbuka tapi
 `result_ids` kosong/tidak lengkap, tanpa pesan error yang jelas ke user.
+
+**AC-02-03** — ref `BR-02`, F-01 `[HASIL-BACA]`
+Given API mengembalikan satu hasil dengan `siege` BUKAN dict sama sekali (bentuk respons berubah
+drastis)
+When `_fetch_siret_data` mengevaluasi `isinstance(siege, dict)`
+Then result itu di-SKIP SENYAP tanpa `NameError`, tanpa log, tanpa indikasi apapun — beda dari
+AC-02-02 (tidak ada `else` untuk pengecekan `isinstance` ini, lihat catatan tambahan F-01
+`FINDINGS.md`).
 
 ---
 

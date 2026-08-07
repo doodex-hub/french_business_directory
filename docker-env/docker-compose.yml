@@ -1,0 +1,40 @@
+# Instantiated from doc-dev-backfill/templates/docker-compose.yml.template — multi-addon variant.
+# Repo root is mounted directly (not a single-module subfolder) so both fr_business_directory and
+# personal_email_usage are discoverable on the same addons-path and installed together, per
+# doc-dev-backfill/ai-doc/OVERVIEW.md §3a (multi-addon repos get ONE docker-env for all addons).
+name: french_business_directory_17_backfill
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  odoo:
+    image: odoo:17.0
+    depends_on:
+      - db
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    ports:
+      - "8079:8069"
+    volumes:
+      - D:/Kuncoro/doodex/repo/french-business-directory-17:/mnt/extra-addons
+      - ./logs:/var/log/odoo
+    command: >
+      odoo -d french_business_directory_17_test
+      -i fr_business_directory,personal_email_usage
+      --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons
+      --test-enable
+      --test-tags=/fr_business_directory,/personal_email_usage
+      --stop-after-init
+      --logfile=/var/log/odoo/odoo.log
+
+volumes:
+  db-data:

@@ -1,1 +1,4 @@
 .claude/backfill-command-log.jsonl
+docker-env/logs/
+__pycache__/
+*.pyc
