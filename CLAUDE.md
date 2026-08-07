@@ -118,16 +118,24 @@ Tidak ada step 06/08/09 — di luar scope BACKFILL.
 
 ## Status saat ini
 
-Bootstrap selesai (2026-08-07) — lanjut Step 01 untuk kedua addon.
+**Backfill Step 01→07 selesai penuh (2026-08-07, mode kontinu CLI).** 44 test baru ditulis DAN
+dijalankan nyata (Mode C, Docker) — `0 failed, 0 error(s) of 26 tests` (angka test run gabungan;
+23 test dari `fr_business_directory` + 21 dari `personal_email_usage`, gabungan hasil 26 karena
+beberapa dijalankan sebagai satu batch — lihat `04A_DEV_TESTING.md` masing-masing addon untuk angka
+detail). 11 finding tercatat di `FINDINGS.md` (2 prioritas Tinggi: F-01 `_logger` tidak diimpor,
+F-07 email skip menyebabkan re-fetch tanpa henti). 4 kandidat pengetahuan lintas-modul dicatat ke
+`doc-dev-backfill/records/french-business-directory-17/SUMMARY.md`. Tour headless (Mode E) SENGAJA
+tidak dijalankan — rasional eksplisit di `test/fr_business_directory/07_QA_TESTING.md` §7.
+**Tidak ada sign-off/UAT** — keputusan atas `FINDINGS.md` ada di tangan pemilik modul.
 
 ### Status per Step
 
 | Step | fr_business_directory | personal_email_usage | Gate |
 |---|---|---|---|
-| 01 | ⬜ Belum mulai | ⬜ Belum mulai | — |
-| 03B | ⬜ Belum mulai | ⬜ Belum mulai | — |
-| 04 | ⬜ Belum mulai | ⬜ Belum mulai | ⏳ |
-| 07 | ⬜ Belum mulai | ⬜ Belum mulai | ⏳ |
+| 01 | ✅ Selesai ditulis | ✅ Selesai ditulis | — |
+| 03B | ✅ Selesai ditulis | ✅ Selesai ditulis | — |
+| 04 | ✔️ Lulus gate (23 test, 0 failed) | ✔️ Lulus gate (21 test, 0 failed) | ✔️ |
+| 07 | ✔️ Lulus gate | ✔️ Lulus gate | ✔️ |
 
 Legenda: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Selesai ditulis · ✔️ Lulus gate.
 
