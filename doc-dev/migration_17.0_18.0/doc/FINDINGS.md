@@ -18,6 +18,8 @@
 | MF-06 | Log ringkasan "succeeded" salah hitung | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Sedang | 🟡 Default: dipertahankan identik |
 | MF-07 | `fetch_mail()` signature core berubah (`raise_exception` param baru) — override modul ini akan `TypeError` di cron 18.0 kalau tidak disesuaikan | 1, dikonfirmasi Step 2 | `[GAP-MIGRASI]` (**dikonfirmasi nyata**) | **Tinggi** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-02) |
 | MF-08 | `from odoo.tools import logging` gagal `ImportError` di 18.0 — `misc.py` menambahkan `__all__` yang menutup leak implisit stdlib `logging` | 6 (ditemukan lewat G1 dry run nyata, TIDAK terdeteksi Step 2/3 review statis) | `[GAP-MIGRASI]` (dikonfirmasi nyata) | **Tinggi (install-blocking)** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-09) |
+| MF-09 | `matching.etablissement` create() crash (`InvalidDatetimeFormat`) kalau key `date_fermeture` hilang total dari payload API (bukan cuma bernilai kosong) | 9 (ditemukan lewat test suite nyata, bug pre-existing 17.0, TIDAK disebabkan migrasi) | `[DIWARISI-SOURCE]` | Sedang (butuh kondisi API spesifik untuk terpicu) | 🟡 Dicatat, tidak diperbaiki (P1) |
+| MF-10 | `matching.etablissement._compute_activite_principale` membaca `result_id.activite_principale` (nilai level siège/parent), BUKAN field `activite_principale` miliknya sendiri — beda dari yang tersirat di deskripsi BR-07 lama | 9 (ditemukan lewat penulisan test, dikonfirmasi baca kode + eksekusi nyata) | `[DIWARISI-SOURCE]` — koreksi pemahaman, bukan bug baru | Rendah (cuma klarifikasi, behavior tidak berubah dari 17.0) | 🟡 Dicatat, `01b_BASELINE_SPEC.md` BSL-007 dikoreksi |
 
 ---
 
@@ -109,6 +111,26 @@
 **Dampak:** Install modul `personal_email_usage` gagal total (`ImportError`) di 18.0 tanpa fix ini.
 **Rekomendasi:** ganti `from odoo.tools import logging` → `import logging` (stdlib langsung).
 **Keputusan pemilik modul:** ✅ RESOLVED — fix diterapkan (compat mekanis, bukan perubahan business logic), diverifikasi ulang lewat G1 percobaan #2.
+
+---
+
+### MF-09 — `matching.etablissement` create() crash kalau `date_fermeture` hilang total dari payload
+**Ditemukan di:** Step 9 (Dev Testing, 2026-08-24) — lewat penulisan test nyata, bukan review statis
+**Tag:** `[DIWARISI-SOURCE]` — bug pre-existing 17.0, tidak disebabkan migrasi (kode ini tidak disentuh Step 6)
+**Lokasi:** `fr_business_directory/models/siret_wizard.py` — `me.get('date_fermeture', '')` (baik jalur `matching_etablissements_data` maupun fallback siège)
+**Deskripsi:** Kalau key `date_fermeture` SAMA SEKALI TIDAK ADA di dict payload (beda dari key ada tapi bernilai `null`/`False`), fallback `.get(..., '')` menghasilkan string kosong `''` yang ditulis ke field `date_fermeture` (`fields.Date`) — Postgres menolak dengan `InvalidDatetimeFormat: invalid input syntax for type date: ""`. Dikonfirmasi lewat test (`test_matching_etablissement_missing_date_fermeture_key_crashes`).
+**Dampak:** Kalau API `recherche-entreprises.api.gouv.fr` pernah mengirim payload tanpa key ini sama sekali (belum dikonfirmasi apakah ini genuinely terjadi di produksi — API publik, bisa berubah kapan saja), `create()` akan crash, bukan silent-safe seperti yang mungkin diasumsikan.
+**Keputusan pemilik modul:** Dicatat, TIDAK diperbaiki (P1 Full Fidelity — behavior identik 17.0). Kalau dev mau, bisa jadi kandidat perbaikan terpisah DI LUAR migrasi ini.
+
+---
+
+### MF-10 — `_compute_activite_principale` (matching.etablissement) sumbernya `result_id.activite_principale`, bukan field sendiri
+**Ditemukan di:** Step 9 (Dev Testing, 2026-08-24)
+**Tag:** `[DIWARISI-SOURCE]` — koreksi pemahaman terhadap `01b_BASELINE_SPEC.md` BSL-007/BR-07 lama, bukan bug baru
+**Lokasi:** `fr_business_directory/models/siret_wizard.py` — `_compute_activite_principale` di `matching.etablissement`, `@api.depends('result_id.activite_principale')`
+**Deskripsi:** Field `activite_principale` yang dipakai untuk translasi label Perancis adalah milik `siret.wizard.result` (level siège/perusahaan), diakses via `record.result_id.activite_principale` — BUKAN field `activite_principale` milik `matching.etablissement` itu sendiri (yang datanya per-etablissement dari `me.get('activite_principale', '')`). Artinya SEMUA etablissement dalam satu hasil pencarian yang sama akan menampilkan translasi yang SAMA (berdasar siège), terlepas kode `activite_principale` masing-masing etablissement individual.
+**Dampak:** Behavior tidak berubah dari 17.0 (kode ini tidak disentuh migrasi) — ini murni klarifikasi pemahaman yang sebelumnya kurang presisi di spec lama (BR-07 backfill menyiratkan translasi berdasar kode etablissement itu sendiri). Dikoreksi di `01b_BASELINE_SPEC.md` BSL-007.
+**Keputusan pemilik modul:** Tidak perlu keputusan — behavior dipertahankan, cuma dokumentasi yang diperjelas.
 
 ---
 
