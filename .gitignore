@@ -1,0 +1,23 @@
+# gitignore.template — migration-tool CLI bootstrap (DRAFT, belum divalidasi, 2026-08-21)
+#
+# Instansiasi ke: target-codebase/.gitignore (root repo modul, sibling CLAUDE.md/doc-dev/)
+# Kalau target-codebase/.gitignore SUDAH ada — JANGAN overwrite, APPEND baris di bawah yang belum
+# ada (cek dulu per baris, jangan duplikat). Diadaptasi dari doc-dev-backfill/templates/gitignore.template.
+
+# Python bytecode cache — dihasilkan otomatis begitu Odoo/Python meng-import file modul untuk
+# testing (Mode B/C/D), termasuk lewat volume mount docker-env yang tembus balik ke folder host.
+__pycache__/
+*.pyc
+*.pyo
+
+# Log runtime Odoo dari docker-env (Mode B/C/D, lihat USAGE_GUIDE.md §5 soal --logfile) — noise
+# operasional per-run, bukan deliverable.
+docker-env/logs/
+
+# Command-log hook Claude Code CLI (lihat templates/cli-config/settings.json.template) — jejak
+# operasional sesi CLI, bukan bagian dokumentasi migrasi.
+.claude/migration-tool-command-log.jsonl
+
+# Config permission personal (auto-generated saat klik "Always allow" di CLI) — beda dev bisa beda
+# preferensi, jangan dipaksa seragam lewat commit bersama.
+.claude/settings.local.json

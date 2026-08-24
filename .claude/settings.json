@@ -1,0 +1,88 @@
+{
+  "_status": "DRAFT — BELUM DIVALIDASI (dibuat 2026-08-21, dikoreksi 2026-08-21 setelah cek dokumentasi resmi Claude Code — code.claude.com/docs/en/permissions). Varian settings.json.template INI KHUSUS untuk project yang mengaktifkan Mode Git (Git eksekusi = Ya di CLAUDE.md) — lihat ai-doc/USAGE_GUIDE.md 'Mode Git'. Kalau Git eksekusi = Tidak (default), pakai settings.json.template biasa. ADA placeholder {{ABS_PATH_...}} di bawah yang WAJIB diisi path absolut nyata sebelum dipakai — lihat README.md 'Koreksi path-matching', kalau tidak diisi rule-nya inert.",
+
+  "permissions": {
+    "allow": [
+      "Bash(docker --version:*)",
+      "Bash(docker compose version:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker run:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run:*)",
+      "Bash(docker compose up:*)",
+      "Bash(docker compose down:*)",
+      "Bash(docker compose restart:*)",
+      "Bash(docker compose build:*)",
+      "Bash(docker compose exec:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker compose exec:*)",
+      "Bash(docker compose run:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker compose run:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker cp:*)",
+      "Bash(docker logs:*)",
+
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(diff:*)",
+      "Bash(stat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(echo:*)",
+      "Bash(tr:*)",
+      "Bash(sort:*)",
+      "Bash(mkdir:*)",
+      "Bash(sleep:*)",
+      "Bash(test:*)",
+      "Bash(pwd:*)",
+      "Bash(python3 -c*)",
+
+      "Bash(git rev-parse:*)",
+      "Bash(git status:*)",
+      "Bash(git fetch:*)",
+      "Bash(git ls-remote:*)",
+      "Bash(git checkout:*)",
+      "Bash(git clone:*)",
+      "Bash(git pull:*)",
+      "Bash(git commit:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+
+      "Edit(**)",
+      "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/migration-records/**)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git push --force:*)",
+      "Bash(git rebase:*)",
+      "Bash(git merge:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git branch -D:*)",
+      "Bash(gh pr create:*)",
+
+      "Edit(//D:/Kuncoro/doodex/repo/french-business-directory-migration-18-source/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/odoo18/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/enterprise18/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/odoo17/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/enterprise17/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/knowledge/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/templates/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >> .claude/migration-tool-command-log.jsonl"
+          }
+        ]
+      }
+    ]
+  }
+}
