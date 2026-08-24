@@ -104,7 +104,7 @@ Cross-cutting (tidak kondisional): `PROMPT_LOG.md` dan `FINDINGS.md` di root `do
 
 ## Status saat ini
 
-**Step 9 — Dev Testing — ✔️ GATE LULUS.** 28 test method BARU ditulis (source 17.0 tidak punya test sama sekali) untuk kedua addon, dijalankan nyata via Docker (`--test-enable`). 2 putaran fix-test diperlukan: MF-09 (crash kalau `date_fermeture` hilang dari payload API — bug pre-existing, ditemukan lewat test) dan MF-10 (koreksi pemahaman `_compute_activite_principale` — sumbernya `result_id.activite_principale`, bukan field sendiri). Hasil akhir: 0 failed, 0 error dari 24-28 test. 2 AC (AC-01-01 UI-only, AC-11-02 log assertion) di-disclosure eksplisit tanpa test otomatis. Lanjut ke **Step 10 — QA Testing**.
+**Step 10 — QA Testing — ✔️ GATE LULUS.** 8 skenario (S-01..S-08) — Smoke/Main Flow/Detail/Negative — semua Pass, ditopang bukti test otomatis Step 9 + verifikasi statis Step 2/8. Percobaan AI-interaktif via browser untuk S-01 terhambat masalah tooling (webclient Odoo tidak mount di headless browser sesi ini, server-side tidak ada error) — didokumentasikan jujur, fallback ke evidence statis, direkomendasikan dev klik manual sekali sebelum go-live. `human_qa/` (4 file) digenerate. Lanjut ke **Step 11 — UAT Sign-off**.
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja.
 
@@ -121,7 +121,7 @@ Cross-cutting (tidak kondisional): `PROMPT_LOG.md` dan `FINDINGS.md` di root `do
 | 7 | Data Migration Scripts | — | — (n/a, port kode saja) | — |
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
-| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⬜ Belum mulai | — |
+| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
 | 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
 
 Legenda status: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.
