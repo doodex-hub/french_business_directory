@@ -16,7 +16,7 @@
 | MF-04 | No-op senyap saat `partner_name` kosong di tengah paginasi | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Rendah | 🟡 Default: dipertahankan identik |
 | MF-05 | Email yang di-skip tidak pernah ditandai processed → re-fetch tanpa henti | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | **Tinggi** | ✅ CONFIRMED — dev setuju dipertahankan identik (2026-08-24) |
 | MF-06 | Log ringkasan "succeeded" salah hitung | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Sedang | 🟡 Default: dipertahankan identik |
-| MF-07 | Override `fetch_mail()` tanpa `super()` untuk IMAP — perlu cek ulang kompatibilitas core 18.0 | 1 | `[GAP-MIGRASI]` (potensial) | Sedang | 🔴 Terbuka — cek di Step 2 |
+| MF-07 | `fetch_mail()` signature core berubah (`raise_exception` param baru) — override modul ini akan `TypeError` di cron 18.0 kalau tidak disesuaikan | 1, dikonfirmasi Step 2 | `[GAP-MIGRASI]` (**dikonfirmasi nyata**) | **Tinggi** | 🔴 Terbuka — fix wajib di Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-02) |
 
 ---
 
@@ -87,14 +87,15 @@
 
 ---
 
-### MF-07 — Override `fetch_mail()` tanpa `super()` untuk IMAP — perlu cek ulang kompatibilitas core 18.0
-**Ditemukan di:** Step 1 (2026-08-24), diwarisi backfill 2026-08-07 (`F-11`), TAPI genuinely bisa jadi isu migrasi baru
-**Tag:** `[GAP-MIGRASI]` (potensial — perlu dikonfirmasi di Step 2)
-**Ref:** `BSL-023`, `F-11`
-**Lokasi:** `personal_email_usage/models/mail.py:61-156`
-**Deskripsi:** `fetch_mail()` di-override total untuk server IMAP (tanpa `super()`) — SENGAJA, intent tetap dipertahankan. TAPI implementasi ini menyalin ulang seluruh logic internal `fetchmail.server.fetch_mail()` core Odoo 17.0 (search/fetch/flag/route/commit) — kalau core 18.0 (`native-target`) mengubah signature/urutan operasi/API method ini, override ini bisa jadi tidak kompatibel meski intent tidak berubah.
-**Rekomendasi:** Step 2 (Diff Analysis) WAJIB diff `mail/models/fetchmail.py` antara `native-source` (17.0) dan `native-target` (18.0) secara spesifik untuk method `fetch_mail`/`connect`/`message_process` yang dipakai override ini.
-**Keputusan pemilik modul:** *(kosong — akan diisi setelah Step 2)*
+### MF-07 — `fetch_mail()` signature core berubah — override modul akan `TypeError` di cron 18.0
+**Ditemukan di:** Step 1 (2026-08-24, hipotesis), dikonfirmasi nyata Step 2 (2026-08-24)
+**Tag:** `[GAP-MIGRASI]` — dikonfirmasi, bukan lagi potensial
+**Ref:** `BSL-023`, `F-11` (asal usul override), `DIFF-02` (`02_DIFF_ANALYSIS.md`)
+**Lokasi:** `personal_email_usage/models/mail.py:61` (override `def fetch_mail(self):`) vs `native-target` `mail/models/fetchmail.py:215` (`def fetch_mail(self, raise_exception=True):`)
+**Deskripsi:** Dikonfirmasi langsung dari kode core: signature `fetch_mail()` berubah di 18.0, menambah parameter `raise_exception=True`. Cron entry point `_fetch_mails()` di 18.0 memanggil `.fetch_mail(raise_exception=False)` — override modul ini (`def fetch_mail(self):`, tanpa parameter apapun) akan `TypeError: fetch_mail() got an unexpected keyword argument 'raise_exception'` untuk SEMUA server (IMAP maupun POP) begitu cron pertama kali jalan di 18.0. Ini BUKAN cuma soal `super()` chain terputus (itu tetap benar, F-11) — ini genuinely install-jalan-tapi-cron-crash-total kalau override tidak diupdate.
+**Dampak:** Modul tidak bisa fetch email SAMA SEKALI lewat cron di 18.0 tanpa fix ini (functional-blocking, bukan cuma risiko arsitektural jangka panjang seperti draft awal F-11).
+**Rekomendasi:** Step 6 (Fase A/B, compat fix) WAJIB update signature override jadi `def fetch_mail(self, raise_exception=True):`, teruskan `raise_exception=raise_exception` ke `super()` call (path non-IMAP). Behavior internal path IMAP (log-only, tidak pernah raise) dipertahankan identik — parameter cukup diterima supaya tidak `TypeError`, tidak perlu mengubah exception handling internal modul ini.
+**Keputusan pemilik modul:** *(kosong — fix ini bersifat kompatibilitas wajib (bukan pilihan), akan dieksekusi di Step 6 kecuali dev keberatan)*
 
 ---
 
