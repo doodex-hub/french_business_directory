@@ -104,7 +104,7 @@ Cross-cutting (tidak kondisional): `PROMPT_LOG.md` dan `FINDINGS.md` di root `do
 
 ## Status saat ini
 
-**Step 11 — UAT Sign-off — draft ditulis, MENUNGGU eksekusi & sign-off manusia asli.** Semua step 1-10 yang bisa dikerjakan AI sudah selesai (2 gate commit: `753ca2b` Step 1, `a276efd` Step 4, `853c313` Step 8, `61969bb` Step 9, `5e59f22` Step 10). `11_UAT_CHECKLIST.md` berisi 3 skenario bahasa awam (T-01, T-02, T-03) + item out-of-scope — kolom Actual/Status/Sign-off SENGAJA kosong, AI tidak boleh mengisi ini. **Migrasi TIDAK dianggap selesai sampai stakeholder (PM/FA/User) menjalankan sendiri dan tanda tangan di sini.**
+**Step 11 — UAT Sign-off — DITERIMA, tapi BUKAN via eksekusi tangan manusia.** Kuncoro dikonfirmasi eksplisit ("apakah UAT sudah dijalankan sendiri?") menjawab belum, dan memilih menerima hasil test otomatis (Step 9) + QA (Step 10) AI sebagai dasar sign-off. Dicatat transparan di `11_UAT_CHECKLIST.md` (kolom Actual merujuk ke evidence AI, Status ditandai "Pass (evidence AI, bukan klik manual)", baris Sign-off eksplisit menyebut ini penerimaan risiko yang disengaja, bukan UAT konvensional) — supaya siapapun yang baca nanti tahu persis dasar keputusannya, bukan klaim palsu bahwa business user sudah klik-klik sendiri. Semua 11 step selesai. Migrasi kode SIAP, keputusan go-live produksi tetap di tangan dev.
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja.
 
@@ -122,7 +122,7 @@ Cross-cutting (tidak kondisional): `PROMPT_LOG.md` dan `FINDINGS.md` di root `do
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
 | 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
-| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ✅ Draft ditulis | ⏳ Menunggu sign-off manusia asli |
+| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ✅ Diterima | ✔️ Diterima 2026-08-24 — berdasarkan evidence AI, bukan eksekusi tangan sendiri (dicatat eksplisit) |
 
 Legenda status: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.
 
