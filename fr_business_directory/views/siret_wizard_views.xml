@@ -22,8 +22,8 @@
                             class="fa fa-arrow-right"></i>
                     </button>
                 </div>
-                <field name="result_ids" mode="tree">
-                    <tree string="Results" delete="False" create="false">
+                <field name="result_ids" mode="list">
+                    <list string="Results" delete="False" create="false">
                         <field name="name" />
                         <field name="social_reason" />
                         <field name="street" />
@@ -31,7 +31,7 @@
                         <field name="post_code" />
                         <field name="city" />
                         <field name="department" />
-                    </tree>
+                    </list>
                 </field>
                 <footer>
                     <button string="Cancel" class="btn-danger" special="cancel" />
@@ -48,7 +48,7 @@
                     <h2>
                         <field name="result_count" readonly="1" /> Results Found </h2>
                     <field name="matching_etablissements">
-                        <tree create="false" delete="false" editable="bottom" no_open="1">
+                        <list create="false" delete="false" editable="bottom" no_open="1">
                             <field name="siret" readonly="1" />
                             <field name="computed_activite_principale"
                                 style="white-space: collapse;" />
@@ -61,7 +61,7 @@
                             <button name='select_siret' string='Select' type='object'
                                 class="oe_stat_button oe_highlight"
                                 confirm="Are you sure want to overwrite the Data?" />
-                        </tree>
+                        </list>
                     </field>
 
                 </sheet>

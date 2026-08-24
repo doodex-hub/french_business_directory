@@ -16,7 +16,8 @@
 | MF-04 | No-op senyap saat `partner_name` kosong di tengah paginasi | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Rendah | 🟡 Default: dipertahankan identik |
 | MF-05 | Email yang di-skip tidak pernah ditandai processed → re-fetch tanpa henti | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | **Tinggi** | ✅ CONFIRMED — dev setuju dipertahankan identik (2026-08-24) |
 | MF-06 | Log ringkasan "succeeded" salah hitung | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Sedang | 🟡 Default: dipertahankan identik |
-| MF-07 | `fetch_mail()` signature core berubah (`raise_exception` param baru) — override modul ini akan `TypeError` di cron 18.0 kalau tidak disesuaikan | 1, dikonfirmasi Step 2 | `[GAP-MIGRASI]` (**dikonfirmasi nyata**) | **Tinggi** | 🔴 Terbuka — fix wajib di Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-02) |
+| MF-07 | `fetch_mail()` signature core berubah (`raise_exception` param baru) — override modul ini akan `TypeError` di cron 18.0 kalau tidak disesuaikan | 1, dikonfirmasi Step 2 | `[GAP-MIGRASI]` (**dikonfirmasi nyata**) | **Tinggi** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-02) |
+| MF-08 | `from odoo.tools import logging` gagal `ImportError` di 18.0 — `misc.py` menambahkan `__all__` yang menutup leak implisit stdlib `logging` | 6 (ditemukan lewat G1 dry run nyata, TIDAK terdeteksi Step 2/3 review statis) | `[GAP-MIGRASI]` (dikonfirmasi nyata) | **Tinggi (install-blocking)** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-09) |
 
 ---
 
@@ -96,6 +97,18 @@
 **Dampak:** Modul tidak bisa fetch email SAMA SEKALI lewat cron di 18.0 tanpa fix ini (functional-blocking, bukan cuma risiko arsitektural jangka panjang seperti draft awal F-11).
 **Rekomendasi:** Step 6 (Fase A/B, compat fix) WAJIB update signature override jadi `def fetch_mail(self, raise_exception=True):`, teruskan `raise_exception=raise_exception` ke `super()` call (path non-IMAP). Behavior internal path IMAP (log-only, tidak pernah raise) dipertahankan identik — parameter cukup diterima supaya tidak `TypeError`, tidak perlu mengubah exception handling internal modul ini.
 **Keputusan pemilik modul:** *(kosong — fix ini bersifat kompatibilitas wajib (bukan pilihan), akan dieksekusi di Step 6 kecuali dev keberatan)*
+
+---
+
+### MF-08 — `from odoo.tools import logging` — `ImportError` di 18.0 (ditemukan G1 dry run)
+**Ditemukan di:** Step 6, Checkpoint G1 percobaan #1 (2026-08-24) — **TIDAK terdeteksi di Step 2/3** (review statis manifest/kode tidak menangkap ini, murni ketahuan dari install nyata)
+**Tag:** `[GAP-MIGRASI]` — dikonfirmasi
+**Ref:** `DIFF-09` (`02_DIFF_ANALYSIS.md`)
+**Lokasi:** `personal_email_usage/models/mail.py:6`
+**Deskripsi:** `odoo/tools/misc.py` di 18.0 menambahkan `__all__` eksplisit yang tidak mencantumkan `logging` — menutup leak implisit stdlib `logging` yang di 17.0 (tanpa `__all__`) ikut ter-export lewat wildcard `from .misc import *` di `odoo/tools/__init__.py`. `odoo.tools.logging` bukan API resmi Odoo di versi manapun, cuma efek samping tidak disengaja.
+**Dampak:** Install modul `personal_email_usage` gagal total (`ImportError`) di 18.0 tanpa fix ini.
+**Rekomendasi:** ganti `from odoo.tools import logging` → `import logging` (stdlib langsung).
+**Keputusan pemilik modul:** ✅ RESOLVED — fix diterapkan (compat mekanis, bukan perubahan business logic), diverifikasi ulang lewat G1 percobaan #2.
 
 ---
 

@@ -104,7 +104,7 @@ Cross-cutting (tidak kondisional): `PROMPT_LOG.md` dan `FINDINGS.md` di root `do
 
 ## Status saat ini
 
-**Step 4 — Spec Completeness Review — ✔️ GATE LULUS.** Step 3 (Migration Spec) selesai dengan strategi per-file lengkap (fokus DIFF-01, DIFF-02). Step 4 menemukan 1 gap (`mail_views.xml` belum eksplisit di spec) — langsung ditutup (xpath dikonfirmasi stabil 17→18), ditambahkan sebagai DIFF-08. Semua elemen kedua addon ter-cover. Lanjut ke **Step 5 — Acceptance Criteria & Test Plan**.
+**Step 8 — Code Review — ✔️ GATE LULUS.** Kode migrasi (3 fix: DIFF-01/02/09) direview vs migration spec DAN acceptance criteria — 0 Critical/Warning, 5 Info (semua preserved quirk yang sudah dikonfirmasi). Method/field collision check (2 arah) terhadap `native-target`: bersih. Lanjut ke **Step 9 — Dev Testing**.
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja.
 
@@ -116,10 +116,10 @@ Cross-cutting (tidak kondisional): `PROMPT_LOG.md` dan `FINDINGS.md` di root `do
 | 2 | Diff & Compatibility Analysis | `02_DIFF_ANALYSIS.md` | ✅ Draft/selesai ditulis | Tidak ada gate formal |
 | 3 | Migration Spec (teknis) | `03_MIGRATION_SPEC.md` | ✅ Draft/selesai ditulis | — |
 | 4 | Spec Completeness Review | `04_SPEC_COMPLETENESS_REVIEW.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
-| 5 | Acceptance Criteria & Test Plan | `05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `05b_TEST_PLAN_MIGRATION.md` | ⬜ Belum mulai | — |
-| 6 | Code Migration | kode `target-codebase` + `06c_IMPLEMENTATION_LOG.md` | ⬜ Belum mulai | — |
+| 5 | Acceptance Criteria & Test Plan | `05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `05b_TEST_PLAN_MIGRATION.md` | ✅ Draft/selesai ditulis | — |
+| 6 | Code Migration | kode `target-codebase` + `06c_IMPLEMENTATION_LOG.md` | ✅ Selesai (G1/G2 Pass) | — |
 | 7 | Data Migration Scripts | — | — (n/a, port kode saja) | — |
-| 8 | Code Review | `08_CODE_REVIEW.md` | ⬜ Belum mulai | — |
+| 8 | Code Review | `08_CODE_REVIEW.md` | ✅ Draft/selesai ditulis | ✔️ Lulus (2026-08-24) |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ⬜ Belum mulai | — |
 | 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⬜ Belum mulai | — |
 | 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
