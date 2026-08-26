@@ -103,7 +103,7 @@ Cross-cutting: `PROMPT_LOG.md` dan `FINDINGS.md` di root `doc/` — update tiap 
 
 ## Status saat ini
 
-Step 1 (Intake) selesai — lanjut Step 2 (Diff & Compatibility Analysis). Temuan awal Step 0/2 yang sudah terkonfirmasi lewat cek langsung `native-source`/`native-target`: (1) `fetchmail.server.fetch_mail()` — signature 18.0 `fetch_mail(self, raise_exception=True)`, di 19.0 KEMBALI jadi `fetch_mail(self)` TANPA parameter — breaking untuk override `personal_email_usage/models/mail.py` yang saat ini masih pakai signature 18.0; (2) field `res.partner.siret` (disediakan `l10n_fr` di 18.0) **tidak ditemukan lagi** di `l10n_fr` 19.0 lewat grep awal — sedang diverifikasi lebih lanjut (kemungkinan pindah modul/field lain) sebelum disimpulkan sebagai breaking change definitif untuk `fr_business_directory`.
+Step 9 (Dev Testing) — G1 run #1 selesai (Docker `odoo:19.0`, Mode C). Hasil: 17/24 test pass. **BLOCKED** menunggu keputusan user untuk `FINDINGS.md` MF-03 (`fetchmail.server` arsitektur 19.0 dirombak total — cron tidak lagi memanggil `fetch_mail()` publik, override modul jadi tidak pernah terpanggil cron; `connect()` di-rename `_connect__()`). AI sudah menyiapkan rekomendasi konkret (override `_fetch_mail()`, bukan `fetch_mail()`) — menunggu konfirmasi user sebelum diterapkan (bukan mechanical fix low-risk seperti DIFF-01/DIFF-02, ada restrukturisasi titik override). 1 temuan lain (CAND-04, test `date_fermeture` tidak lagi crash) tidak blocking.
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja.
 
@@ -112,14 +112,14 @@ Step 1 (Intake) selesai — lanjut Step 2 (Diff & Compatibility Analysis). Temua
 | # | Step | Dokumen | Status | Gate |
 |---|---|---|---|---|
 | 1 | Intake & Scope | `01a_MIGRATION_INTAKE.md`, `01b_BASELINE_SPEC.md` | ✔️ Disetujui | ✔️ Lulus |
-| 2 | Diff & Compatibility Analysis | `02_DIFF_ANALYSIS.md` | 🔄 Sedang dikerjakan | Tidak ada gate formal |
-| 3 | Migration Spec (teknis) | `03_MIGRATION_SPEC.md` | ⬜ Belum mulai | — |
-| 4 | Spec Completeness Review | `04_SPEC_COMPLETENESS_REVIEW.md` | ⬜ Belum mulai | — |
-| 5 | Acceptance Criteria & Test Plan | `05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `05b_TEST_PLAN_MIGRATION.md` | ⬜ Belum mulai | — |
-| 6 | Code Migration | kode `target-codebase` + `06c_IMPLEMENTATION_LOG.md` | ⬜ Belum mulai | — |
+| 2 | Diff & Compatibility Analysis | `02_DIFF_ANALYSIS.md` | ✅ Selesai | Tidak ada gate formal |
+| 3 | Migration Spec (teknis) | `03_MIGRATION_SPEC.md` | ✅ Selesai | — |
+| 4 | Spec Completeness Review | `04_SPEC_COMPLETENESS_REVIEW.md` | ✔️ Disetujui | ✔️ Lulus |
+| 5 | Acceptance Criteria & Test Plan | `05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `05b_TEST_PLAN_MIGRATION.md` | ✅ Selesai | — |
+| 6 | Code Migration | kode `target-codebase` + `06c_IMPLEMENTATION_LOG.md` | ✅ Selesai (fix DIFF-01/DIFF-02) — **akan direvisi lagi setelah keputusan MF-03** | — |
 | 7 | Data Migration Scripts | — | — (N/A, port kode saja) | — |
-| 8 | Code Review | `08_CODE_REVIEW.md` | ⬜ Belum mulai | — |
-| 9 | Dev Testing | `09_DEV_TESTING.md` | ⬜ Belum mulai | — |
+| 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Disetujui (sebelum MF-03 ditemukan G1 — perlu re-review singkat setelah fix MF-03) | ✔️ Lulus |
+| 9 | Dev Testing | `09_DEV_TESTING.md` | 🔄 **BLOCKED — menunggu keputusan user (MF-03)** | ⏳ Belum lulus |
 | 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⬜ Belum mulai | — |
 | 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
 
