@@ -63,11 +63,9 @@
       "Bash(git branch -D:*)",
       "Bash(gh pr create:*)",
 
-      "Edit(//D:/Kuncoro/doodex/repo/french-business-directory-migration-18-source/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/french-business-directory-migration-19-source/**)",
       "Edit(//D:/Kuncoro/doodex/repo/odoo18/**)",
-      "Edit(//D:/Kuncoro/doodex/repo/enterprise18/**)",
-      "Edit(//D:/Kuncoro/doodex/repo/odoo17/**)",
-      "Edit(//D:/Kuncoro/doodex/repo/enterprise17/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/enterprise19.0/**)",
       "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/knowledge/**)",
       "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/templates/**)"
     ]
