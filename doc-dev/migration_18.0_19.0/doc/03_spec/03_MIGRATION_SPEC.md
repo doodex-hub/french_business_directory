@@ -24,6 +24,8 @@ Migrasi ini adalah port kode mekanis hampir murni — **2 fix wajib** (signature
 | `fr_business_directory/models/siret_wizard.py:354` (`matching.etablissement.select_siret`, blok `if`) | DIFF-02 | Sama — ganti key `'siret'`→`'company_registry'` | Rendah | BSL-004, BSL-006 |
 | `fr_business_directory/models/siret_wizard.py:354` (blok `else`) | DIFF-02 | Sama — ganti key `'siret'`→`'company_registry'` di cabang `else` juga (baris `~366-372`) | Rendah | BSL-004 |
 | `fr_business_directory/__manifest__.py`, `personal_email_usage/__manifest__.py` | — (housekeeping wajib, bukan DIFF) | Update `'version': '18.0.1.0.0'` → `'19.0.1.0.0'` | Tidak ada | — |
+| `fr_business_directory/tests/test_siret_wizard.py:130` (`test_select_result_overwrites_partner`) | DIFF-02 | Ganti assertion `self.assertEqual(self.partner.siret, ...)` → `self.assertEqual(self.partner.company_registry, ...)` (ditemukan Step 4 completeness review) | Rendah | BSL-004 |
+| `personal_email_usage/tests/test_fetchmail.py:51-54` (`test_fetch_mail_accepts_raise_exception_kwarg`) | DIFF-01 | Tulis ulang jadi `test_fetch_mail_accepts_no_args` — panggil `fetch_mail()` TANPA argumen (cara cron 19.0 memanggil), bukan lagi `fetch_mail(raise_exception=False)` (ditemukan Step 4 completeness review) | Rendah | BSL-023 |
 | Semua file lain (models/views/security tidak disebut di atas) | DIFF-03..DIFF-09 | Port apa adanya, tanpa perubahan — dikonfirmasi tidak ada breaking change | Tidak ada | — |
 
 ## 2b. Risk Analysis Terstruktur
