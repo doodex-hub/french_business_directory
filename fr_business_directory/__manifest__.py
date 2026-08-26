@@ -13,7 +13,7 @@
     'license': 'LGPL-3',
 
     'category': 'Extra Tools',
-    'version': '18.0.1.0.0',
+    'version': '19.0.1.0.0',
     'application': False,
 
     'depends': ['base', 'contacts', 'l10n_fr'],

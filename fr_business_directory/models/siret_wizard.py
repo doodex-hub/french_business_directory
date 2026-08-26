@@ -257,7 +257,7 @@ class SiretWizardResult(models.TransientModel):
             country_id = country_department.country_id.id if country_department and country_department.country_id else False
 
             partner.write({
-                'siret': self.siret,
+                'company_registry': self.siret,
                 'name': self.name,
                 'street': self.street,
                 'street2': self.street2,
@@ -272,7 +272,7 @@ class SiretWizardResult(models.TransientModel):
             })
         else:
             partner.write({
-                'siret': self.siret,
+                'company_registry': self.siret,
                 'name': self.name,
                 'street': self.street,
                 'street2': self.street2,
@@ -351,7 +351,7 @@ class MatchingEtablissement(models.TransientModel):
             partner.write({
                 'name': self.name,
                 'social_reason': self.social_reason,
-                'siret': self.siret,
+                'company_registry': self.siret,
                 'zip': self.code_postal,
                 'street': address_before_postal_code,
                 'street2': '',
@@ -366,7 +366,7 @@ class MatchingEtablissement(models.TransientModel):
             partner.write({
                 'name': self.name,
                 'social_reason': self.social_reason,
-                'siret': self.siret,
+                'company_registry': self.siret,
                 'zip': self.code_postal,
                 'street': address_before_postal_code,
                 'street2': '',

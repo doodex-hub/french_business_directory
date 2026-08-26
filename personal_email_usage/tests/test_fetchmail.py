@@ -48,9 +48,10 @@ class TestFetchmailOverride(TransactionCase):
             'object_id': model_res_partner.id,
         })
 
-    def test_fetch_mail_accepts_raise_exception_kwarg(self):
-        """AC-08-03 / DIFF-02 — signature compat with 18.0 core cron (_fetch_mails calls raise_exception=False)."""
-        result = self.env['fetchmail.server'].fetch_mail(raise_exception=False)
+    def test_fetch_mail_accepts_no_args(self):
+        """AC-08-03 / DIFF-01 — signature compat with 19.0 core cron (_fetch_mails calls fetch_mail() with no arguments;
+        18.0 required a `raise_exception` kwarg, 19.0 removed it again — see MF-01)."""
+        result = self.env['fetchmail.server'].fetch_mail()
         self.assertTrue(result)
 
     def test_skip_email_from_internal_user(self):

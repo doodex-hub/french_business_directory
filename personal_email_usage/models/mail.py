@@ -58,8 +58,8 @@ class FetchmailServer(models.Model):
         help='If checked, fetched emails will be marked as read in the email server'
     )
 
-    def fetch_mail(self, raise_exception=True):
-        """Override fetch_mail to add message ID tracking and contact filtering. `raise_exception` param required since 18.0 core cron calls fetch_mail(raise_exception=False)."""
+    def fetch_mail(self):
+        """Override fetch_mail to add message ID tracking and contact filtering. No `raise_exception` param since 19.0 core cron calls fetch_mail() with no arguments (18.0 required it, 19.0 removed it again)."""
         for server in self.filtered(lambda s: s.server_type == 'imap'):
             processed_ids = set(filter(None, (server.processed_message_ids or '').split(',')))
             count, failed, skipped = 0, 0, 0
@@ -153,4 +153,4 @@ class FetchmailServer(models.Model):
                                         server.name, exc_info=True)
 
         # Process remaining servers (non-IMAP) using original method
-        return super(FetchmailServer, self.filtered(lambda s: s.server_type != 'imap')).fetch_mail(raise_exception=raise_exception)
+        return super(FetchmailServer, self.filtered(lambda s: s.server_type != 'imap')).fetch_mail()

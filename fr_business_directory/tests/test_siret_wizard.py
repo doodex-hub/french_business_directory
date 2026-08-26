@@ -121,13 +121,18 @@ class TestSiretWizard(TransactionCase):
         self.assertIsNone(result)
 
     def test_select_result_overwrites_partner(self):
-        """AC-04-01 — select_siret() on a result row overwrites partner fields."""
+        """AC-04-01 — select_siret() on a result row overwrites partner fields.
+
+        `res.partner.siret` (dedicated l10n_fr field in 18.0) was removed in 19.0 and
+        consolidated into the generic core field `company_registry` (see DIFF-02, MF-02) —
+        assert against `company_registry`, not `siret`.
+        """
         with patch('requests.get', return_value=_mock_response([_result(nom_complet='NEW CO')])):
             wizard = self.env['siret.wizard'].with_context(active_id=self.partner.id).create({})
         row = wizard.result_ids[0]
         row.with_context(active_id=self.partner.id).select_siret()
         self.assertEqual(self.partner.name, 'NEW CO')
-        self.assertEqual(self.partner.siret, '12345678900012')
+        self.assertEqual(self.partner.company_registry, '12345678900012')
         self.assertEqual(self.partner.city, 'Paris')
 
     def test_select_department_field_untouched_when_model_absent(self):
