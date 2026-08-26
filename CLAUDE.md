@@ -103,7 +103,7 @@ Cross-cutting: `PROMPT_LOG.md` dan `FINDINGS.md` di root `doc/` — update tiap 
 
 ## Status saat ini
 
-**MIGRASI 18.0 → 19.0 SELESAI — semua 11 step lulus.** Step 11 (UAT) diterima 2026-08-26 berdasarkan evidence AI (dev eksplisit memilih "Terima evidence AI", sama seperti project 17→18). Ringkasan: 2 breaking change wajib diperbaiki (DIFF-01/MF-03: `fetchmail.server.fetch_mail()`→`_fetch_mail()`; DIFF-02/MF-02: `res.partner.siret`→`company_registry`), 1 breaking change ditemukan HANYA lewat G1 real test run (MF-03, tidak terdeteksi review statis Step 2) — bukti nyata kenapa checkpoint G1 wajib dijalankan sungguhan. 24/24 test pass di run final. Branch `migration/19.0_target` siap diserahkan ke dev untuk review akhir + `git push` (belum dilakukan, keputusan dev).
+**MIGRASI 18.0 → 19.0 SELESAI — semua 11 step lulus, branch `migration/19.0_target` sudah di-push dev ke remote (2026-08-26).** Step 11 (UAT) diterima berdasarkan evidence AI (dev eksplisit memilih "Terima evidence AI", sama seperti project 17→18). Ringkasan: 2 breaking change wajib diperbaiki (DIFF-01/MF-03: `fetchmail.server.fetch_mail()`→`_fetch_mail()`; DIFF-02/MF-02: `res.partner.siret`→`company_registry`), 1 breaking change ditemukan HANYA lewat G1 real test run (MF-03, tidak terdeteksi review statis Step 2) — bukti nyata kenapa checkpoint G1 wajib dijalankan sungguhan. 24/24 test pass di run final.
 
 **Prasyarat sebelum go-live produksi** (lihat `11_uat/11_UAT_CHECKLIST.md` "Prasyarat"): klik manual tombol "Business Directory" + jalankan scheduled action fetchmail manual di browser sungguhan (belum terverifikasi visual karena Owl webclient tidak mount di tooling browser sesi ini), backup DB sebelum instalasi produksi.
 
