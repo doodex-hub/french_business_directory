@@ -3,7 +3,7 @@
 **Step:** 9 — Dev Testing (gate)
 **Ref:** `05_acceptance/05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `05_acceptance/05b_TEST_PLAN_MIGRATION.md`, `01_intake/01b_BASELINE_SPEC.md`
 **Tanggal:** 2026-08-26
-**Status:** 🔄 **Draft — G1 run #1 selesai, 1 blocker `[GAP-MIGRASI]` (MF-03) ditemukan, menunggu keputusan user sebelum fix + rerun**
+**Status:** ✔️ **Disetujui — gate lulus. 4 run G1 total (1 gagal awal + 3 rerun perbaikan bertahap), run #4 (final): 0 failed, 0 error(s) of 24 tests.**
 
 ---
 
@@ -22,7 +22,10 @@ Semua 23 test existing (`test_siret_wizard.py` 14, `test_fetchmail.py` 9) sudah 
 
 | # | Command | Hasil | Tanggal |
 |---|---|---|---|
-| 1 | `docker compose up --abort-on-container-exit` (`docker-env/docker-compose.yml`, image `odoo:19.0`, `--test-enable --test-tags=/fr_business_directory,/personal_email_usage`) | ❌ **1 failed, 6 error(s) of 24 tests** | 2026-08-26 |
+| 1 | `docker compose up --abort-on-container-exit` (fresh volume) | ❌ **1 failed, 6 error(s) of 24 tests** — MF-03 (fetchmail arsitektur) + CAND-04 (date_fermeture) | 2026-08-26 |
+| 2 | Rerun TANPA `down -v` dulu — DB lama ter-reuse, modul dianggap sudah terinstall | ⚠️ **0 failed, 0 error(s) of 0 tests** — **false pass**, test TIDAK dieksekusi sama sekali (`-i` tidak re-trigger test run pada DB existing). **Lesson:** WAJIB `docker compose down -v` (hapus volume) sebelum tiap rerun G1 kalau ingin test benar-benar dieksekusi ulang, bukan cuma `down` biasa. | 2026-08-26 |
+| 3 | `down -v` lalu rerun setelah fix MF-03 (override pindah ke `_fetch_mail()`, `connect()`→`_connect__()`) | ❌ **2 failed, 0 error(s) of 24 tests** — 6 error MF-03 HILANG (fix berhasil), TAPI `test_fetch_mail_accepts_no_args` sendiri jadi FAIL baru: `AssertionError: Cannot commit or rollback a cursor from inside a test` — core `_fetch_mail()` 19.0 memanggil `ir.cron._commit_progress()` (yang men-commit cursor) TANPA SYARAT sebelum loop server, bahkan untuk recordset kosong; `TransactionCase` melarang commit di tengah test. Fix: tambahkan `patch.object(self.env.cr, 'commit')` di test ini (pola yang sudah dipakai 5 test IMAP lain, cuma belum ditambahkan ke test ini). | 2026-08-26 |
+| 4 | `down -v` lalu rerun setelah fix commit-mock + update test `date_fermeture` (CAND-04, assert non-crash bukan lagi `assertRaises`) | ✅ **0 failed, 0 error(s) of 24 tests** | 2026-08-26 |
 
 ## Hasil Detail Run #1
 
@@ -54,5 +57,7 @@ Semua test PASS **kecuali 1**:
 
 ## Verdict
 
-- [ ] ✅ Semua AC prioritas Unit/Integration pass — lanjut ke step 10
-- [x] ❌ **Ada yang gagal — BLOCKED, menunggu keputusan user untuk MF-03** (lihat `FINDINGS.md` dan pertanyaan di respons chat). CAND-04 (test `date_fermeture`) tidak blocking, akan diselesaikan di rerun yang sama setelah MF-03 diputuskan.
+- [x] ✅ Semua AC prioritas Unit/Integration pass — lanjut ke step 10 (24/24 test pass, run #4)
+- [ ] ❌ Ada yang gagal
+
+Semua 21 AC di `05a_MIGRATION_ACCEPTANCE_CRITERIA.md` terkonfirmasi lewat test yang benar-benar dieksekusi (bukan stub) — termasuk AC-04-01 (`company_registry`, DIFF-02) dan AC-08-03 (`_fetch_mail()`, DIFF-01/MF-03) yang merupakan fokus utama migrasi ini.

@@ -49,15 +49,23 @@ class TestFetchmailOverride(TransactionCase):
         })
 
     def test_fetch_mail_accepts_no_args(self):
-        """AC-08-03 / DIFF-01 — signature compat with 19.0 core cron (_fetch_mails calls fetch_mail() with no arguments;
-        18.0 required a `raise_exception` kwarg, 19.0 removed it again — see MF-01)."""
-        result = self.env['fetchmail.server'].fetch_mail()
-        self.assertTrue(result)
+        """AC-08-03 / MF-03 — signature/entry-point compat with 19.0 core cron, which calls
+        `_fetch_mail(batch_limit=...)` directly (not `fetch_mail()` — see MF-03). Our override moved
+        from `fetch_mail()` to `_fetch_mail()` accordingly. `_fetch_mail()` returns `None` on success
+        (an `Exception` instance on failure), unlike 18.0's `fetch_mail()` which always returned `True`.
+
+        Core `_fetch_mail()` calls `ir.cron._commit_progress()` unconditionally (even for an empty
+        recordset, before iterating any server) which does `self.env.cr.commit()` — forbidden inside
+        a TransactionCase test. This is a real commit in production cron usage (expected), only
+        needs mocking here because we're calling `_fetch_mail()` directly instead of via the cron."""
+        with patch.object(self.env.cr, 'commit'):
+            result = self.env['fetchmail.server']._fetch_mail()
+        self.assertIsNone(result)
 
     def test_skip_email_from_internal_user(self):
         """AC-09-01 — email from an internal user is skipped, not routed to message_process."""
         conn = _mock_imap(['1'], {'1': _raw_email('internal@example.com')})
-        with patch.object(type(self.imap_server), 'connect', return_value=conn), \
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
              patch.object(type(self.env['mail.thread']), 'message_process') as mock_process, \
              patch.object(self.env.cr, 'commit'):
             self.imap_server.fetch_mail()
@@ -66,7 +74,7 @@ class TestFetchmailOverride(TransactionCase):
     def test_skip_email_from_non_contact(self):
         """AC-09-02 — email from an address that is neither an internal user nor a known partner is skipped."""
         conn = _mock_imap(['1'], {'1': _raw_email('stranger@example.com')})
-        with patch.object(type(self.imap_server), 'connect', return_value=conn), \
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
              patch.object(type(self.env['mail.thread']), 'message_process') as mock_process, \
              patch.object(self.env.cr, 'commit'):
             self.imap_server.fetch_mail()
@@ -75,7 +83,7 @@ class TestFetchmailOverride(TransactionCase):
     def test_process_email_from_known_contact(self):
         """AC-09-03 / AC-08-01 — email from a known partner IS routed to message_process."""
         conn = _mock_imap(['1'], {'1': _raw_email('known@example.com')})
-        with patch.object(type(self.imap_server), 'connect', return_value=conn), \
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
              patch.object(type(self.env['mail.thread']), 'message_process', return_value=999) as mock_process, \
              patch.object(self.env.cr, 'commit'):
             self.imap_server.fetch_mail()
@@ -86,7 +94,7 @@ class TestFetchmailOverride(TransactionCase):
         """AC-11-01 [PRESERVE-BUG] BSL-020/MF-05 — skipped emails never enter processed_message_ids,
         so the same email is picked up again by the next (UNSEEN) search."""
         conn = _mock_imap(['1'], {'1': _raw_email('internal@example.com', message_id='<repeat@example.com>')})
-        with patch.object(type(self.imap_server), 'connect', return_value=conn), \
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
              patch.object(type(self.env['mail.thread']), 'message_process') as mock_process, \
              patch.object(self.env.cr, 'commit'):
             self.imap_server.fetch_mail()
@@ -96,7 +104,7 @@ class TestFetchmailOverride(TransactionCase):
     def test_processed_email_recorded_in_processed_ids(self):
         """Control case for AC-11-01 — a successfully processed email IS recorded (only the skip path leaks)."""
         conn = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<ok@example.com>')})
-        with patch.object(type(self.imap_server), 'connect', return_value=conn), \
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
              patch.object(type(self.env['mail.thread']), 'message_process', return_value=999), \
              patch.object(self.env.cr, 'commit'):
             self.imap_server.fetch_mail()

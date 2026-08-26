@@ -103,7 +103,7 @@ Cross-cutting: `PROMPT_LOG.md` dan `FINDINGS.md` di root `doc/` — update tiap 
 
 ## Status saat ini
 
-Step 9 (Dev Testing) — G1 run #1 selesai (Docker `odoo:19.0`, Mode C). Hasil: 17/24 test pass. **BLOCKED** menunggu keputusan user untuk `FINDINGS.md` MF-03 (`fetchmail.server` arsitektur 19.0 dirombak total — cron tidak lagi memanggil `fetch_mail()` publik, override modul jadi tidak pernah terpanggil cron; `connect()` di-rename `_connect__()`). AI sudah menyiapkan rekomendasi konkret (override `_fetch_mail()`, bukan `fetch_mail()`) — menunggu konfirmasi user sebelum diterapkan (bukan mechanical fix low-risk seperti DIFF-01/DIFF-02, ada restrukturisasi titik override). 1 temuan lain (CAND-04, test `date_fermeture` tidak lagi crash) tidak blocking.
+Step 9 (Dev Testing) selesai — G1 run #4 (final): **0 failed, 0 error(s) of 24 tests**. MF-03 (`fetchmail.server` arsitektur 19.0 dirombak — cron panggil `_fetch_mail()` bukan `fetch_mail()`) ditemukan G1 run #1, dieskalasi ke user, disetujui, diterapkan, dan diverifikasi lulus lewat rerun bertahap (lihat `09_DEV_TESTING.md` "Riwayat Percobaan G1" untuk kronologi 4 run). CAND-04 (field `Date` 19.0 tidak lagi crash pada string kosong) dikonfirmasi reproducible, test diupdate. Lanjut ke Step 10 (QA Testing).
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja.
 
@@ -116,10 +116,10 @@ Step 9 (Dev Testing) — G1 run #1 selesai (Docker `odoo:19.0`, Mode C). Hasil: 
 | 3 | Migration Spec (teknis) | `03_MIGRATION_SPEC.md` | ✅ Selesai | — |
 | 4 | Spec Completeness Review | `04_SPEC_COMPLETENESS_REVIEW.md` | ✔️ Disetujui | ✔️ Lulus |
 | 5 | Acceptance Criteria & Test Plan | `05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `05b_TEST_PLAN_MIGRATION.md` | ✅ Selesai | — |
-| 6 | Code Migration | kode `target-codebase` + `06c_IMPLEMENTATION_LOG.md` | ✅ Selesai (fix DIFF-01/DIFF-02) — **akan direvisi lagi setelah keputusan MF-03** | — |
+| 6 | Code Migration | kode `target-codebase` + `06c_IMPLEMENTATION_LOG.md` | ✅ Selesai (fix DIFF-01/DIFF-02/MF-03) | — |
 | 7 | Data Migration Scripts | — | — (N/A, port kode saja) | — |
-| 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Disetujui (sebelum MF-03 ditemukan G1 — perlu re-review singkat setelah fix MF-03) | ✔️ Lulus |
-| 9 | Dev Testing | `09_DEV_TESTING.md` | 🔄 **BLOCKED — menunggu keputusan user (MF-03)** | ⏳ Belum lulus |
+| 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Disetujui (+ addendum re-review pasca-MF-03) | ✔️ Lulus |
+| 9 | Dev Testing | `09_DEV_TESTING.md` | ✔️ Disetujui — 24/24 test pass | ✔️ Lulus |
 | 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⬜ Belum mulai | — |
 | 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
 

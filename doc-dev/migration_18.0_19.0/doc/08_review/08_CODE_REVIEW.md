@@ -60,3 +60,14 @@ Semua 21 AC tercakup — 2 AC yang butuh perubahan kode (AC-04-01, AC-08-03) sud
 - [ ] ❌ Ditolak
 
 **Issue 🔴 yang wajib difix sebelum lanjut:** tidak ada.
+
+---
+
+## Addendum — Re-review Setelah G1 (MF-03 fix)
+
+**Tanggal:** 2026-08-26. G1 (Step 9) menemukan MF-03 (`fetchmail.server` arsitektur 19.0 dirombak — lihat `FINDINGS.md`) SETELAH gate ini lulus, memicu perubahan tambahan di `personal_email_usage/models/mail.py` (override dipindah `fetch_mail()`→`_fetch_mail()`, `connect()`→`_connect__()`) dan test terkait. Re-review singkat:
+
+- **Gap Analysis vs Migration Spec:** update konsisten dengan rekomendasi yang sudah didokumentasikan `FINDINGS.md` MF-03 dan `06c_IMPLEMENTATION_LOG.md` — ✅ Sesuai.
+- **P1 Fidelity:** perubahan TETAP murni adaptasi teknis (titik override berpindah method, bukan logic bisnis) — behavior IMAP custom (BSL-015..BSL-021) tidak disentuh. ✅ Tidak ada perubahan behavior tidak disengaja.
+- **Tabrakan nama (Arah 2):** `_fetch_mail` dan `_connect__` — dicek `enterprise19.0/odoo/addons/mail/models/fetchmail.py`, keduanya adalah method CORE yang kita override secara SENGAJA (bukan kolisi tidak sengaja) — `_fetch_mail` didefinisikan core baris 263, override kita menambah logic lalu delegasi `super()._fetch_mail(...)`, pola yang sama seperti `fetch_mail()` sebelumnya. Tidak ada isu.
+- **Verdict:** ✅ Tetap Lulus, tidak ada 🔴 baru. Tidak perlu re-run gate penuh — perubahan tercakup lingkup yang sama (fix kompatibilitas API, bukan fitur/business logic baru).

@@ -12,7 +12,7 @@
 |---|---|---|---|---|---|
 | MF-01 | `fetchmail.server.fetch_mail()` signature berubah lagi di 19.0 (parameter `raise_exception` dihapus) | Step 1/2 | `[GAP-MIGRASI]` | Tinggi (install-jalan-tapi-cron-crash) | Rekomendasi ditentukan, diterapkan Step 6 |
 | MF-02 | `res.partner.siret` (l10n_fr) dihapus, dikonsolidasi ke `company_registry` generik | Step 1/2 | `[GAP-MIGRASI]` | Tinggi (fitur utama `fr_business_directory` — tombol "Select" akan gagal) | Rekomendasi ditentukan, diterapkan Step 6 |
-| MF-03 | `fetchmail.server` — arsitektur internal 19.0 dirombak total, cron TIDAK LAGI memanggil `fetch_mail()` (public) — override modul jadi TIDAK PERNAH TERPANGGIL oleh cron. Ditemukan G1 (Step 9), TIDAK terdeteksi Step 2 review statis. | Step 9 (G1) | `[GAP-MIGRASI]`, **PERLU KEPUTUSAN USER** | **Kritis** (fitur inti `personal_email_usage` berhenti berfungsi via cron, silent — tidak error, cuma tidak jalan) | ⏳ **Menunggu keputusan user** — lihat ESCALATION di bawah |
+| MF-03 | `fetchmail.server` — arsitektur internal 19.0 dirombak total, cron TIDAK LAGI memanggil `fetch_mail()` (public) — override modul jadi TIDAK PERNAH TERPANGGIL oleh cron. Ditemukan G1 (Step 9), TIDAK terdeteksi Step 2 review statis. | Step 9 (G1) | `[GAP-MIGRASI]` | **Kritis** (fitur inti `personal_email_usage` berhenti berfungsi via cron, silent — tidak error, cuma tidak jalan) | ✅ **RESOLVED** — user menyetujui rekomendasi AI 2026-08-26, fix diterapkan (override dipindah ke `_fetch_mail()`, `connect()`→`_connect__()`), menunggu G1 rerun untuk verifikasi |
 
 ---
 
@@ -63,7 +63,7 @@
 2. Di override `_fetch_mail()` baru: pertahankan SPLIT yang sama seperti sekarang — untuk server IMAP jalankan logic custom (skip user internal/non-kontak, dedup `processed_message_ids`, kontrol `mark_read`), untuk server lain delegasikan ke `super()._fetch_mail(batch_limit=batch_limit)`.
 3. Untuk implementasi IMAP custom: PALING AMAN adalah TETAP pakai raw imaplib manual seperti sekarang (bukan ikut arsitektur wrapper `OdooIMAP4` baru — itu perubahan gaya/style, bukan wajib kompatibilitas), cukup ganti `server.connect()` → `server._connect__()` (satu-satunya perubahan wajib di titik ini, method lama sudah private-renamed, bukan dihapus fungsinya).
 **Risiko rekomendasi ini:** Rendah-Sedang — mempertahankan implementasi manual existing (perilaku sudah terbukti benar & diuji 23 test), cuma pindah "titik pasang" override dan satu rename method koneksi. Tidak ikut arsitektur baru sepenuhnya (tidak pakai `try_lock_for_update`/batching baru) — ini KONSISTEN dengan prinsip "port kode saja, jangan refactor demi mengikuti gaya baru kecuali wajib kompatibilitas".
-**Keputusan pemilik modul:** *(menunggu — lihat pertanyaan yang diajukan AI di respons chat)*
+**Keputusan pemilik modul:** ✅ **Disetujui 2026-08-26** — terapkan rekomendasi AI (override `_fetch_mail()`, pertahankan raw-imaplib existing, ganti `connect()`→`_connect__()`). Diterapkan di `personal_email_usage/models/mail.py`: method di-rename `fetch_mail(self)` → `_fetch_mail(self, batch_limit=50)`, `server.connect()` → `server._connect__()`, delegasi akhir jadi `super(...)._fetch_mail(batch_limit=batch_limit)` (aman dipanggil pada recordset kosong — beda dari `fetch_mail()` yang butuh `ensure_one()`). Test terkait diupdate (`test_fetch_mail_accepts_no_args` menguji `_fetch_mail()` langsung, assert `None` bukan `True`; 5 test IMAP lain di-patch `_connect__` bukan `connect`).
 
 ---
 

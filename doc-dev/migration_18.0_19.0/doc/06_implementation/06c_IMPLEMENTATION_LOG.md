@@ -27,8 +27,8 @@ Sama seperti migrasi 17.0→18.0 — kode tidak berubah struktur sejak saat itu,
 | A5 (fix DIFF-01, DIFF-02 — breaking change API) | ✅ | 2026-08-26 |
 | B1 (update test existing sesuai `03_MIGRATION_SPEC.md` §2) | ✅ | 2026-08-26 |
 | B2, C2, D1, D2, E, F | N/A — dikonfirmasi Applicability Check | |
-| G1 (install test) | ⏳ Menunggu konfirmasi mode eksekusi dev (Step 9) | — |
-| G2 (validasi akhir/runtime) | ⏳ Bagian Step 9/10 | — |
+| G1 (install test, Mode C) | ✅ 4 run (1 gagal awal, 3 rerun perbaikan bertahap), run #4 final: 0 failed, 0 error(s) of 24 tests | 2026-08-26 |
+| G2 (validasi akhir/runtime) | ✅ Tercakup dalam G1 run #4 (install + full regression suite) | 2026-08-26 |
 
 ---
 
@@ -74,17 +74,33 @@ Sama seperti migrasi 17.0→18.0 — kode tidak berubah struktur sejak saat itu,
   - `test_fetchmail.py::test_fetch_mail_accepts_raise_exception_kwarg` → ditulis ulang jadi `test_fetch_mail_accepts_no_args`, memanggil `fetch_mail()` tanpa argumen (bukan lagi `fetch_mail(raise_exception=False)`)
 - **21 test lain** di kedua file di-reuse APA ADANYA (tidak disentuh) — akan jadi regression check di Step 9 bahwa behavior lain benar-benar tidak berubah.
 
+### [Fase A5, revisi setelah G1 run #1] Fix MF-03 — pindahkan override ke `_fetch_mail()`
+
+- **Scope:** `personal_email_usage/models/mail.py`, `personal_email_usage/tests/test_fetchmail.py`
+- **Item spec (ref):** `FINDINGS.md` MF-03, `09_DEV_TESTING.md` (G1 run #1)
+- **Ditemukan:** G1 run #1 (Step 9) — 6 dari 9 test `test_fetchmail.py` error. Root cause: cron 19.0 (`_fetch_mails()`) memanggil `_fetch_mail()` (privat) langsung, TIDAK LAGI memanggil `fetch_mail()` (publik, yang di-override modul sejak fix DIFF-01 awal). `connect()` juga di-rename `_connect__()`.
+- **Keputusan:** dieskalasi ke user (bukan diputuskan sepihak AI — beda dari DIFF-01/DIFF-02 yang rendah risiko) karena melibatkan pindah titik override, bukan cuma rename signature. User menyetujui rekomendasi AI 2026-08-26.
+- **Aksi:**
+  - `def fetch_mail(self):` → `def _fetch_mail(self, batch_limit=50):` (method di-rename, docstring dijelaskan alasan)
+  - `server.connect()` → `server._connect__()`
+  - `return super(FetchmailServer, ...).fetch_mail()` → `return super(FetchmailServer, ...)._fetch_mail(batch_limit=batch_limit)`
+  - `test_fetch_mail_accepts_no_args`: sekarang memanggil `self.env['fetchmail.server']._fetch_mail()` langsung dan assert `assertIsNone(result)` (bukan `assertTrue`, karena `_fetch_mail()` return `None`/`Exception`, bukan `True`/`False` seperti `fetch_mail()` versi 18.0)
+  - 5 test lain (`test_skip_email_from_internal_user` dkk): `patch.object(type(self.imap_server), 'connect', ...)` → `patch.object(type(self.imap_server), '_connect__', ...)`, pemanggilan `self.imap_server.fetch_mail()` TIDAK diubah (tetap lewat entry point publik core 19.0, yang sekarang secara benar mendelegasikan ke `_fetch_mail()` override kita lewat `self.sudo()._fetch_mail()`)
+- **Behavior:** TIDAK berubah dari intent asli (BSL-015..BSL-021) — override total untuk IMAP (raw imaplib, TIDAK diganti ke wrapper `OdooIMAP4` baru — keputusan sengaja, lihat MF-03), delegasi penuh untuk non-IMAP. Perbedaan teknis: delegasi ke non-IMAP sekarang AMAN dipanggil pada recordset kosong (tidak ada lagi crash `ensure_one()` seperti sebelumnya di Fase A5 pertama).
+- **Secara eksplisit TIDAK dilakukan:** tidak mengadopsi arsitektur `OdooIMAP4`/`retrieve_unread_messages()`/`try_lock_for_update`/`batch_limit` baru untuk logic IMAP kita — itu perubahan gaya/robustness opsional, bukan wajib untuk kompatibilitas (P1 fidelity, "jangan refactor kecuali wajib").
+
 ---
 
-## Ringkasan Perubahan File
+## Ringkasan Perubahan File (final, setelah G1)
 
 | File | Jenis perubahan |
 |---|---|
 | `fr_business_directory/__manifest__.py` | Version bump |
 | `fr_business_directory/models/siret_wizard.py` | Fix DIFF-02 (4 lokasi) |
-| `fr_business_directory/tests/test_siret_wizard.py` | Update 1 assertion |
+| `fr_business_directory/tests/test_siret_wizard.py` | Update 2 test: `test_select_result_overwrites_partner` (assertion field), `test_matching_etablissement_missing_date_fermeture_key_no_longer_crashes` (CAND-04, ditemukan G1) |
 | `personal_email_usage/__manifest__.py` | Version bump |
-| `personal_email_usage/models/mail.py` | Fix DIFF-01 (signature + pemanggilan `super()`) |
-| `personal_email_usage/tests/test_fetchmail.py` | Tulis ulang 1 test |
+| `personal_email_usage/models/mail.py` | Fix DIFF-01/MF-03 (override dipindah `fetch_mail()`→`_fetch_mail()`, `connect()`→`_connect__()`, ditemukan+diperbaiki setelah G1) |
+| `personal_email_usage/tests/test_fetchmail.py` | Update 7 test: 1 ditulis ulang total (`test_fetch_mail_accepts_no_args`), 5 ganti target patch (`connect`→`_connect__`), 1 tambah commit-mock |
+| `docker-env/docker-compose.yml` | Update image/nama/port untuk 19.0, tambah `--test-enable` |
 
 Semua file lain di kedua addon (views, security, i18n, static, README, dll) **tidak disentuh** — port apa adanya, dikonfirmasi tidak ada breaking change (`02_DIFF_ANALYSIS.md` DIFF-03..DIFF-09).

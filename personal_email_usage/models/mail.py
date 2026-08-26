@@ -58,15 +58,22 @@ class FetchmailServer(models.Model):
         help='If checked, fetched emails will be marked as read in the email server'
     )
 
-    def fetch_mail(self):
-        """Override fetch_mail to add message ID tracking and contact filtering. No `raise_exception` param since 19.0 core cron calls fetch_mail() with no arguments (18.0 required it, 19.0 removed it again)."""
+    def _fetch_mail(self, batch_limit=50):
+        """Override _fetch_mail (not fetch_mail) to add message ID tracking and contact filtering.
+
+        19.0 core restructured fetchmail.server: fetch_mail() is now a thin public wrapper that
+        requires a singleton and delegates to _fetch_mail() (private); the cron (_fetch_mails())
+        calls _fetch_mail() directly, bypassing fetch_mail() entirely. Overriding fetch_mail() (as
+        in 17.0/18.0) would silently never run via cron in 19.0 — see FINDINGS.md MF-03.
+        `connect()` was also renamed `_connect__()` in 19.0 core.
+        """
         for server in self.filtered(lambda s: s.server_type == 'imap'):
             processed_ids = set(filter(None, (server.processed_message_ids or '').split(',')))
             count, failed, skipped = 0, 0, 0
             imap_server = None
 
             try:
-                imap_server = server.connect()
+                imap_server = server._connect__()
                 imap_server.select()
                 result, data = imap_server.search(None, '(UNSEEN)')
 
@@ -153,4 +160,4 @@ class FetchmailServer(models.Model):
                                         server.name, exc_info=True)
 
         # Process remaining servers (non-IMAP) using original method
-        return super(FetchmailServer, self.filtered(lambda s: s.server_type != 'imap')).fetch_mail()
+        return super(FetchmailServer, self.filtered(lambda s: s.server_type != 'imap'))._fetch_mail(batch_limit=batch_limit)

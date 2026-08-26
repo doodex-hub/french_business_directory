@@ -185,15 +185,19 @@ class TestSiretWizard(TransactionCase):
         matching = wizard.result_ids.matching_etablissements
         self.assertEqual(matching.computed_activite_principale, '68.20X')
 
-    def test_matching_etablissement_missing_date_fermeture_key_crashes(self):
-        """MF-09 [new finding] — if 'date_fermeture' key is entirely ABSENT from an API
-        matching_etablissements entry (not just empty/false), the code's `.get('date_fermeture', '')`
-        fallback writes an empty string to a Date field, which Postgres rejects. Reproduces with
-        unmodified source logic (not caused by this migration) — documented, not fixed (P1)."""
+    def test_matching_etablissement_missing_date_fermeture_key_no_longer_crashes(self):
+        """MF-09 (from migration_17.0_18.0) — in 17.0/18.0, an entirely-missing 'date_fermeture' key
+        in a matching_etablissements API entry causes .get('date_fermeture', '') to write an empty
+        string to a Date field, which Postgres rejected (crash, `assertRaises(Exception)` in the
+        17.0->18.0 version of this test). In 19.0 this no longer crashes (CAND-04, see
+        migration-records/french_business_directory_18.0_19.0/SUMMARY.md) — a platform ORM/Postgres
+        behavior change, not something this migration changed on purpose. Updated to assert the new
+        (non-crashing) behavior, not a P1 fix of our own code."""
         etab_missing_key = {'activite_principale': '68.20A', 'siret': '99988877700033', 'adresse': '', 'code_postal': ''}
-        with self.assertRaises(Exception):
-            with patch('requests.get', return_value=_mock_response([_result(matching_etablissements=[etab_missing_key])])):
-                self.env['siret.wizard'].with_context(active_id=self.partner.id).create({})
+        with patch('requests.get', return_value=_mock_response([_result(matching_etablissements=[etab_missing_key])])):
+            wizard = self.env['siret.wizard'].with_context(active_id=self.partner.id).create({})
+        matching = wizard.result_ids.matching_etablissements
+        self.assertFalse(matching.date_fermeture)
 
     def test_social_reason_field_tracked(self):
         """AC-06-01 — social_reason field is defined with tracking=True."""
