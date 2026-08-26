@@ -103,7 +103,9 @@ Cross-cutting: `PROMPT_LOG.md` dan `FINDINGS.md` di root `doc/` — update tiap 
 
 ## Status saat ini
 
-Step 10 (QA Testing) selesai — 9 skenario (S-01..S-09), semua Pass. AI-interaktif (Claude Browser) dicoba untuk verifikasi visual tapi terhambat tooling (Owl webclient tidak mount di sandbox ini, sama seperti project 17→18) — fallback ke evidence Step 9 (24 test otomatis, real DB+ORM) + verifikasi statis Step 2/8. Human QA checklist (`10_qa/human_qa/`) sudah digenerate untuk verifikasi manual dev sebelum go-live, terutama S-01 (klik tombol) dan scheduled action fetchmail (MF-03). Lanjut ke Step 11 (UAT).
+**MIGRASI 18.0 → 19.0 SELESAI — semua 11 step lulus.** Step 11 (UAT) diterima 2026-08-26 berdasarkan evidence AI (dev eksplisit memilih "Terima evidence AI", sama seperti project 17→18). Ringkasan: 2 breaking change wajib diperbaiki (DIFF-01/MF-03: `fetchmail.server.fetch_mail()`→`_fetch_mail()`; DIFF-02/MF-02: `res.partner.siret`→`company_registry`), 1 breaking change ditemukan HANYA lewat G1 real test run (MF-03, tidak terdeteksi review statis Step 2) — bukti nyata kenapa checkpoint G1 wajib dijalankan sungguhan. 24/24 test pass di run final. Branch `migration/19.0_target` siap diserahkan ke dev untuk review akhir + `git push` (belum dilakukan, keputusan dev).
+
+**Prasyarat sebelum go-live produksi** (lihat `11_uat/11_UAT_CHECKLIST.md` "Prasyarat"): klik manual tombol "Business Directory" + jalankan scheduled action fetchmail manual di browser sungguhan (belum terverifikasi visual karena Owl webclient tidak mount di tooling browser sesi ini), backup DB sebelum instalasi produksi.
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja.
 
@@ -121,7 +123,7 @@ Step 10 (QA Testing) selesai — 9 skenario (S-01..S-09), semua Pass. AI-interak
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Disetujui (+ addendum re-review pasca-MF-03) | ✔️ Lulus |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ✔️ Disetujui — 24/24 test pass | ✔️ Lulus |
 | 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ✔️ Disetujui — 9/9 skenario Pass | ✔️ Lulus |
-| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
+| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ✔️ Disetujui — diterima berdasarkan evidence AI | ✔️ Lulus |
 
 Legenda: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.
 

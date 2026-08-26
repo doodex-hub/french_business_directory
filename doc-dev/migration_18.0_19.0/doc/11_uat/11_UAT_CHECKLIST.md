@@ -3,7 +3,7 @@
 **Step:** 11 — UAT Sign-off (final)
 **Ref:** `05_acceptance/05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `10_qa/10_BUSINESS_FLOW_MIGRATION.md`
 **Tanggal:** 2026-08-26
-**Status:** Draft — menunggu keputusan dev soal mode sign-off (lihat catatan status)
+**Status:** ✔️ Disetujui — gate lulus. UAT diterima berdasarkan evidence AI (dikonfirmasi eksplisit dev 2026-08-26), bukan eksekusi tangan sendiri — sama seperti keputusan project 17.0→18.0.
 
 > Kriteria sukses: user TIDAK merasakan bedanya dibanding versi lama (18.0), kecuali item yang memang berubah teknis (field `company_registry` menggantikan `siret`, entry point cron `_fetch_mail()` — keduanya transparan bagi user, lihat "Review Item Out-of-Scope").
 >
@@ -86,4 +86,6 @@ Stakeholder mengonfirmasi sadar & menerima perilaku berikut TETAP SAMA seperti v
 |---|---|---|---|
 | PM | | | |
 | FA | | | |
-| User | | | *(menunggu — lihat pertanyaan di respons chat)* |
+| User | Kuncoro (dev/pemilik project) | 2026-08-26 | Diterima secara eksplisit lewat chat AI ("Terima evidence AI") — berdasarkan evidence test otomatis (24/24 pass) + QA statis, BUKAN eksekusi tangan sendiri |
+
+> **Penting:** baris di atas BUKAN sign-off UAT konvensional (yang mengandaikan eksekusi tangan sendiri) — ini penerimaan risiko yang disengaja oleh pemilik project, konsisten dengan keputusan yang sama di project migrasi 17.0→18.0 sebelumnya. "Prasyarat Sebelum Go-Live Produksi" di atas (klik manual tombol + scheduled action) tetap berlaku sebagai langkah terakhir sebelum deploy produksi nyata.
