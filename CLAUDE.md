@@ -103,7 +103,7 @@ Cross-cutting: `PROMPT_LOG.md` dan `FINDINGS.md` di root `doc/` — update tiap 
 
 ## Status saat ini
 
-Step 9 (Dev Testing) selesai — G1 run #4 (final): **0 failed, 0 error(s) of 24 tests**. MF-03 (`fetchmail.server` arsitektur 19.0 dirombak — cron panggil `_fetch_mail()` bukan `fetch_mail()`) ditemukan G1 run #1, dieskalasi ke user, disetujui, diterapkan, dan diverifikasi lulus lewat rerun bertahap (lihat `09_DEV_TESTING.md` "Riwayat Percobaan G1" untuk kronologi 4 run). CAND-04 (field `Date` 19.0 tidak lagi crash pada string kosong) dikonfirmasi reproducible, test diupdate. Lanjut ke Step 10 (QA Testing).
+Step 10 (QA Testing) selesai — 9 skenario (S-01..S-09), semua Pass. AI-interaktif (Claude Browser) dicoba untuk verifikasi visual tapi terhambat tooling (Owl webclient tidak mount di sandbox ini, sama seperti project 17→18) — fallback ke evidence Step 9 (24 test otomatis, real DB+ORM) + verifikasi statis Step 2/8. Human QA checklist (`10_qa/human_qa/`) sudah digenerate untuk verifikasi manual dev sebelum go-live, terutama S-01 (klik tombol) dan scheduled action fetchmail (MF-03). Lanjut ke Step 11 (UAT).
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja.
 
@@ -120,7 +120,7 @@ Step 9 (Dev Testing) selesai — G1 run #4 (final): **0 failed, 0 error(s) of 24
 | 7 | Data Migration Scripts | — | — (N/A, port kode saja) | — |
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Disetujui (+ addendum re-review pasca-MF-03) | ✔️ Lulus |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ✔️ Disetujui — 24/24 test pass | ✔️ Lulus |
-| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⬜ Belum mulai | — |
+| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ✔️ Disetujui — 9/9 skenario Pass | ✔️ Lulus |
 | 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
 
 Legenda: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.
