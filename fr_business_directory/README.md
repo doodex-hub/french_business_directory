@@ -59,7 +59,7 @@ A comprehensive tool for managing business directory listings within Odoo. This 
 4. A confirmation dialog will appear asking if you are sure you want to overwrite the data. Click "Ok" to confirm your selection.
 
 ## Compatibility
-Odoo version: 17.0
+Odoo version: 19.0
 
 ## License
 This module is licensed under [LGPLv3 licensed](./LICENSE)

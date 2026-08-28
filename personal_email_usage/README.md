@@ -74,7 +74,7 @@ Configure the option according to your needs:
 Once installed, the module automatically enhances your email fetching process with the features Read Status Control, User Email Filtering, Contact Validation.
 
 ## Compatibility
-Odoo version: 17.0
+Odoo version: 19.0
 
 ## License
 This module is licensed under [LGPLv3 licensed](./LICENSE)
