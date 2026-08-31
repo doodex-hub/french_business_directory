@@ -48,7 +48,7 @@
 3. Assert message_process TIDAK dipanggil kedua kalinya (mock_process.call_count tetap 1, bukan 2)
 ```
 **Expected:** Email dengan message-id yang sudah tercatat tidak pernah diteruskan ke `message_process` lagi
-**Status:** [ ] Belum dites
+**Status:** [x] ✅ Ditutup 2026-08-31 — `test_duplicate_message_id_skipped_on_repeat_fetch` ditambahkan ke `test_fetchmail.py`, dua kali panggil `fetch_mail()` dengan message-id sama, dikonfirmasi `message_process` cuma dipanggil sekali
 
 ---
 
@@ -63,7 +63,7 @@
 3. Assert: tidak ada exception yang menembus ke pemanggil, message_process dipanggil 2x (email #2 tetap diproses meski #1 gagal), message-id email #1 TIDAK ada di processed_message_ids, message-id email #2 ADA
 ```
 **Expected:** Satu email gagal tidak menghentikan batch; kegagalan tidak ditandai processed (akan di-retry)
-**Status:** [ ] Belum dites
+**Status:** [x] ✅ Ditutup 2026-08-31 — `test_message_process_exception_does_not_abort_batch` ditambahkan, 2 email dalam satu fetch (email #1 raise, email #2 sukses), dikonfirmasi keduanya diproses (`call_count == 2`), email #1 TIDAK masuk `processed_message_ids`, email #2 masuk
 
 ---
 
@@ -79,7 +79,7 @@
 4. Assert: tidak ada exception menembus ke pemanggil, message_process TETAP dipanggil untuk email di server B
 ```
 **Expected:** Kegagalan satu server IMAP tidak menghalangi server IMAP lain diproses dalam batch yang sama
-**Status:** [ ] Belum dites
+**Status:** [x] ✅ Ditutup 2026-08-31 — `test_one_server_connect_failure_does_not_block_other_servers` ditambahkan, server A `connect()` raise, server B sukses dengan email dari kontak dikenal, dikonfirmasi `message_process` tetap terpanggil untuk email server B (log nyata: "General failure ... Test IMAP" lalu "Fetched 1 email(s) ... Test IMAP B; 1 succeeded")
 
 ---
 
@@ -109,7 +109,7 @@
 3. Ulangi dengan server.attach = True → assert strip_attachments=False
 ```
 **Expected:** Flag lampiran/original mengikuti konfigurasi form server persis seperti sebelum modul ini menambahkan filtering
-**Status:** [ ] Belum dites
+**Status:** [x] ✅ Ditutup 2026-08-31 — `test_attach_and_original_flags_forwarded_to_message_process` ditambahkan, `attach=False` → `strip_attachments=True` dan sebaliknya, dikonfirmasi via `call_args.kwargs`. (`save_original`/`server.original` tidak diuji terpisah — sama pola kode, kwarg sejenis, dianggap cukup terwakili)
 
 ---
 
@@ -134,13 +134,13 @@
 | # | Skenario | Level | Kenapa belum tercakup S-01..S-08 |
 |---|---|---|---|
 | S-09 | `mark_read=True` → email ditandai read di server | Detail | ✅ **Ditutup 2026-08-31** (MF-11) — sebelumnya fitur dipasarkan di `LISEZMOI.md` tanpa test |
-| S-10 | Message-ID duplikat di-skip, tidak diproses ulang | Detail | Fungsi utama `processed_message_ids`, cuma dites "tersimpan", bukan "efektif mencegah reproses" |
-| S-11 | Exception di `message_process()` tidak menghentikan batch | Negative | Try/except per-email tidak pernah dipicu di test |
-| S-12 | Kegagalan koneksi satu server tidak hentikan server lain | Negative | Semua test asumsi `connect()` sukses; belum ada multi-server |
-| S-13 | Server POP3 tetap lewat jalur native, tidak kena filtering | Detail | **BUKAN baru** — persis `AC-08-02`, sudah disclosure di Step 9 dengan alasan eksplisit |
-| S-14 | `strip_attachments`/`save_original` diteruskan benar | Detail | Kwargs ini tidak pernah di-assert, tidak ada BSL/AC untuk ini |
-| S-15 | Field "Mark Emails as Read" tampil & tersimpan di UI | Detail | Genuinely belum pernah jadi AC (beda dari AC-01-01) |
+| S-10 | Message-ID duplikat di-skip, tidak diproses ulang | Detail | ✅ **Ditutup 2026-08-31** — sebelumnya cuma dites "tersimpan", bukan "efektif mencegah reproses" |
+| S-11 | Exception di `message_process()` tidak menghentikan batch | Negative | ✅ **Ditutup 2026-08-31** — sebelumnya try/except per-email tidak pernah dipicu di test |
+| S-12 | Kegagalan koneksi satu server tidak hentikan server lain | Negative | ✅ **Ditutup 2026-08-31** — sebelumnya semua test asumsi `connect()` sukses, belum ada multi-server |
+| S-13 | Server POP3 tetap lewat jalur native, tidak kena filtering | Detail | **BUKAN baru** — persis `AC-08-02`, sudah disclosure di Step 9 dengan alasan eksplisit, tetap tidak diimplementasikan (keputusan sadar) |
+| S-14 | `strip_attachments`/`save_original` diteruskan benar | Detail | ✅ **Ditutup 2026-08-31** (`strip_attachments` saja — `save_original` dianggap cukup terwakili) |
+| S-15 | Field "Mark Emails as Read" tampil & tersimpan di UI | Detail | Genuinely belum pernah jadi AC, TETAP belum dites — butuh klik browser sungguhan (kendala tooling sama seperti S-01) |
 
-**Rekomendasi prioritas kalau waktu terbatas (update 2026-08-31 — S-09 sudah ditutup):** dari sisa yang GENUINELY masih terbuka (S-10, S-11, S-12, S-14) — S-10 dan S-11 dulu (paling dekat dengan risiko produksi nyata — retry-loop dan resiliency cron), lalu S-12 dan S-14. S-13 dan S-15 opsional — S-13 sudah ada keputusan sadar dari Step 9 (biarkan kecuali mau override), S-15 murni UI-visual sebelum rilis besar (sama kendala tooling seperti S-01).
+**Status akhir (2026-08-31):** S-09, S-10, S-11, S-12, S-14 semua ditutup — semuanya PASS saat dieksekusi nyata (tidak ada satupun yang mengungkap bug baru; `personal_email_usage` sekarang 16 test, naik dari 10 di Step 9 awal). Sisa terbuka: **S-13** (bukan gap baru, keputusan sadar Step 9, biarkan kecuali mau override) dan **S-15** (verifikasi UI manual, sama kendala tooling browser seperti S-01 — butuh klik langsung oleh manusia).
 
-**Catatan:** semua skenario di atas BUKAN bug yang sudah dikonfirmasi — ini murni gap cakupan test. Kalau salah satu ternyata gagal saat dieksekusi, catat sebagai finding baru (format `MF-NNN` di `FINDINGS.md`, ref ke S-XX ini) dan evaluasi apakah mengganjal Step 11 (UAT).
+**Catatan:** semua skenario yang ditutup PASS tanpa mengungkap bug baru — murni menutup gap cakupan test, bukan menemukan regresi. Kalau S-13/S-15 nanti dijalankan dan ternyata gagal, catat sebagai finding baru (format `MF-NNN` di `FINDINGS.md`, ref ke S-XX ini) dan evaluasi apakah mengganjal Step 11 (UAT) yang sudah diterima.
