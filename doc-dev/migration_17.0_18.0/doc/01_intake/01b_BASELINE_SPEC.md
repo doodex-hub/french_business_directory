@@ -3,7 +3,7 @@
 **Step:** 1 — Intake & Scope (pelengkap `01a_MIGRATION_INTAKE.md`)
 **Tujuan:** dokumentasikan APA yang modul lakukan (behavior as-is) di 17.0 — bukan bagaimana diimplementasikan.
 **Tanggal:** 2026-08-24
-**Sumber:** Direkonsiliasi dari `FUNCTIONAL_SPEC.md`/`ACCEPTANCE_CRITERIA.md`/`FINDINGS.md` lama di `french-business-directory-17/doc-dev/backfill/` (hasil backfill 2026-08-07, branch `origin/17.0`) + cross-check baris-per-baris ke kode aktual di `source-codebase` (branch `migration/17.0_source`, dari `origin/staging/17.0`)
+**Sumber:** Direkonsiliasi dari `FUNCTIONAL_SPEC.md`/`ACCEPTANCE_CRITERIA.md`/`FINDINGS.md` lama di `doc-dev/backfill/` (hasil backfill 2026-08-07, branch `origin/17.0`, awalnya di folder eksternal `french-business-directory-17` — disalin ke repo ini 2026-08-31 supaya self-contained, lihat `01a_MIGRATION_INTAKE.md` §4) + cross-check baris-per-baris ke kode aktual di `source-codebase` (branch `migration/17.0_source`, dari `origin/staging/17.0`)
 
 > Repo ini berisi DUA addon independen secara fungsional (`fr_business_directory`, `personal_email_usage`) — dipisah jadi Bagian A/B di bawah, penomoran `BSL-NNN` kontinu lintas keduanya.
 >
@@ -29,7 +29,7 @@ Semua BR/F lain — cocok, low-risk, lihat detail di Bagian A/B.
 
 ## Provenance Tag
 
-Semua klaim di dokumen ini bertag `[MATCH]` dengan rujukan `(ref: BR-NN)` atau `(ref: F-NN)` ke `french-business-directory-17/doc-dev/backfill/spec/{addon}/01A_FUNCTIONAL_SPEC.md` dan `FINDINGS.md` — dikonfirmasi cocok dengan kode `source-codebase` lewat pembacaan langsung baris-per-baris (lihat rujukan lokasi kode tiap klaim).
+Semua klaim di dokumen ini bertag `[MATCH]` dengan rujukan `(ref: BR-NN)` atau `(ref: F-NN)` ke `doc-dev/backfill/spec/{addon}/01A_FUNCTIONAL_SPEC.md` dan `doc-dev/backfill/FINDINGS.md` — dikonfirmasi cocok dengan kode `source-codebase` lewat pembacaan langsung baris-per-baris (lihat rujukan lokasi kode tiap klaim).
 
 ---
 

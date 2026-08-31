@@ -2,7 +2,7 @@
 
 **Modul:** french_business_directory (`fr_business_directory` + `personal_email_usage`)
 **Migrasi:** 17.0 → 18.0
-**Terakhir update:** 2026-08-24
+**Terakhir update:** 2026-08-31
 
 ---
 
@@ -20,6 +20,10 @@
 | MF-08 | `from odoo.tools import logging` gagal `ImportError` di 18.0 — `misc.py` menambahkan `__all__` yang menutup leak implisit stdlib `logging` | 6 (ditemukan lewat G1 dry run nyata, TIDAK terdeteksi Step 2/3 review statis) | `[GAP-MIGRASI]` (dikonfirmasi nyata) | **Tinggi (install-blocking)** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-09) |
 | MF-09 | `matching.etablissement` create() crash (`InvalidDatetimeFormat`) kalau key `date_fermeture` hilang total dari payload API (bukan cuma bernilai kosong) | 9 (ditemukan lewat test suite nyata, bug pre-existing 17.0, TIDAK disebabkan migrasi) | `[DIWARISI-SOURCE]` | Sedang (butuh kondisi API spesifik untuk terpicu) | 🟡 Dicatat, tidak diperbaiki (P1) |
 | MF-10 | `matching.etablissement._compute_activite_principale` membaca `result_id.activite_principale` (nilai level siège/parent), BUKAN field `activite_principale` miliknya sendiri — beda dari yang tersirat di deskripsi BR-07 lama | 9 (ditemukan lewat penulisan test, dikonfirmasi baca kode + eksekusi nyata) | `[DIWARISI-SOURCE]` — koreksi pemahaman, bukan bug baru | Rendah (cuma klarifikasi, behavior tidak berubah dari 17.0) | 🟡 Dicatat, `01b_BASELINE_SPEC.md` BSL-007 dikoreksi |
+| MF-11 | Test case `TC-FLAG-01` (`\Seen` flag sequencing vs `mark_read`, BSL-020) terdokumentasi di backfill lama tapi tidak pernah ter-port ke test suite migrasi ini — Step 9 dulu keliru menyimpulkan "source tidak punya test sama sekali" karena cuma cek `source-codebase`, tidak cek folder backfill terpisah (`french-business-directory-17`) | 9 (gap ditemukan lewat investigasi terpisah, 2026-08-31), ditutup sesi ini | `[DIWARISI-SOURCE]` — gap cakupan test, bukan bug produk | Rendah (cakupan test, BSL-020/MF-05 sendiri sudah lama dikonfirmasi lewat jalur lain) | ✅ RESOLVED — 2 method (`test_mark_read_true_reapplies_seen_flag`, `test_mark_read_false_does_not_reapply_seen_flag`) ditambahkan ke `personal_email_usage/tests/test_fetchmail.py`, dijalankan (`docker compose run` + `--test-enable`), 0 failed/error dari 26 test total |
+| MF-12 | 4 gap cakupan test tambahan di `personal_email_usage` (S-10 dedup message-ID, S-11 resiliency exception per-email, S-12 isolasi kegagalan multi-server, S-14 kwargs `strip_attachments`), didentifikasi lewat analisis gap terpisah (`10_qa/human_qa/05_EMAIL_GAPS.md`, dibuat 2026-08-31) | 9/10 (gap ditemukan lewat analisis terpisah 2026-08-31), ditutup sesi ini | `[DIWARISI-SOURCE]` — gap cakupan test, bukan bug produk | Rendah (semua PASS saat dieksekusi, tidak ada bug baru terungkap) | ✅ RESOLVED — 4 method baru ditambahkan ke `test_fetchmail.py` (`test_duplicate_message_id_skipped_on_repeat_fetch`, `test_message_process_exception_does_not_abort_batch`, `test_one_server_connect_failure_does_not_block_other_servers`, `test_attach_and_original_flags_forwarded_to_message_process`), dijalankan, 0 failed/error dari 30 test total (`personal_email_usage`: 16, naik dari 12). S-13 (POP3 delegasi, sudah `AC-08-02`) dan S-15 (verifikasi UI manual field `mark_read`) TETAP terbuka — lihat `05_EMAIL_GAPS.md` |
+| MF-13 | Tombol "Save"/"Test Connection" tidak menyimpan record di form dengan pola "server connection test" (`fetchmail.server`, `ir.mail_server`) — Odoo build `18.0-20260817`. **Dikonfirmasi BUKAN bug modul** (isolasi 4 data point: 2 form yang dimodifikasi modul kita berhasil save, 1 form yang sama sekali tidak disentuh modul manapun gagal identik) | 10 (S-15, 2026-08-31), isolasi tuntas hari yang sama | `[GAP-MIGRASI]` — **dikonfirmasi bug environment/Odoo build, BUKAN kode modul** (final, bukan dugaan) | Sedang (menghalangi verifikasi persistence S-15 saja, tidak menghalangi fungsi modul — `fetch_mail()` sudah terverifikasi penuh lewat test otomatis MF-11/MF-12) | 🔴 Save tetap tidak bisa diverifikasi (di luar kendali modul ini), TAPI penyebabnya sudah final dikesampingkan dari kode `personal_email_usage`/`fr_business_directory` |
+| MF-14 | Validasi PERTAMA pola GreenMail-incoming level pipeline penuh (`personal_email_usage` jadi modul percobaan pertama, per catatan `migration-tool/ai-doc/USAGE_GUIDE.md`) — BERHASIL, resep tervalidasi tanpa koreksi | 9/10 (2026-08-31) | `[HASIL-BACA]` — validasi tooling, bukan bug | — | ✅ Berhasil — email dari kontak dikenal diproses benar, email non-kontak di-skip benar, `\Seen` flag terkonfirmasi via `imaplib` sungguhan (bukan mock), cocok 100% dengan hasil test mock yang sudah ada. Layak dipromosikan ke knowledge base lewat sesi curation |
 
 ---
 
@@ -131,6 +135,55 @@
 **Deskripsi:** Field `activite_principale` yang dipakai untuk translasi label Perancis adalah milik `siret.wizard.result` (level siège/perusahaan), diakses via `record.result_id.activite_principale` — BUKAN field `activite_principale` milik `matching.etablissement` itu sendiri (yang datanya per-etablissement dari `me.get('activite_principale', '')`). Artinya SEMUA etablissement dalam satu hasil pencarian yang sama akan menampilkan translasi yang SAMA (berdasar siège), terlepas kode `activite_principale` masing-masing etablissement individual.
 **Dampak:** Behavior tidak berubah dari 17.0 (kode ini tidak disentuh migrasi) — ini murni klarifikasi pemahaman yang sebelumnya kurang presisi di spec lama (BR-07 backfill menyiratkan translasi berdasar kode etablissement itu sendiri). Dikoreksi di `01b_BASELINE_SPEC.md` BSL-007.
 **Keputusan pemilik modul:** Tidak perlu keputusan — behavior dipertahankan, cuma dokumentasi yang diperjelas.
+
+---
+
+### MF-11 — `TC-FLAG-01` (backfill) tidak pernah ter-port ke test suite migrasi
+**Ditemukan di:** Step 9, gap ditemukan lewat investigasi terpisah (2026-08-31) — ditutup sesi yang sama
+**Tag:** `[DIWARISI-SOURCE]` — gap cakupan test, bukan bug produk baru
+**Ref:** `BSL-020` (`01b_BASELINE_SPEC.md`), `F-07`/`BR-03` (backfill), `TC-FLAG-01` (`french-business-directory-17/doc-dev/backfill/test/personal_email_usage/04A_DEV_TESTING.md:66-71`)
+**Lokasi:** `personal_email_usage/tests/test_fetchmail.py` (baru), `personal_email_usage/models/mail.py:75-77` (mekanisme `\Seen` yang diverifikasi)
+**Deskripsi:** `09_DEV_TESTING.md` (Step 9, 2026-08-24) menyimpulkan "source module tidak pernah punya test sama sekali" berdasarkan cek `source-codebase` saja — klaim itu benar untuk `source-codebase` (branch `migration/17.0_source`), TAPI folder terpisah `french-business-directory-17` (hasil backfill 2026-08-07, tidak dipakai sebagai `source-codebase` project ini — lihat keputusan Step 1 "Clone baru bersih") justru punya dokumentasi test case lengkap (`TC-FLAG-01`, `TC-SKIP-01`, `TC-LOG-01`) yang tidak pernah ikut disurvei. `TC-FLAG-01` spesifik menguji mekanisme `\Seen` flag (`mark_read=True` → `+FLAGS \Seen` dipanggil; `mark_read=False` → tidak) yang jadi dasar bug BSL-020/MF-05 — sudah didokumentasikan benar di baseline spec, tapi belum ada bukti test otomatis untuk mekanisme flag itu sendiri (test lama yang ada cuma menguji sisi `processed_message_ids`, bukan sisi `\Seen`).
+**Dampak:** Murni gap cakupan test — BSL-020/MF-05 sudah dikonfirmasi lewat pembacaan kode + Step 8 review, jadi tidak ada risiko fungsional baru. Tapi tanpa test ini, regresi di masa depan pada mekanisme `\Seen` (mis. saat modul lain ikut disentuh) tidak akan tertangkap otomatis.
+**Rekomendasi:** Port `TC-FLAG-01` #01 dan #02 sebagai test otomatis.
+**Keputusan pemilik modul:** ✅ Diterapkan 2026-08-31 — 2 method ditambahkan ke `test_fetchmail.py` (`test_mark_read_true_reapplies_seen_flag`, `test_mark_read_false_does_not_reapply_seen_flag`), dijalankan via `docker compose run --rm odoo_target odoo ... --test-enable --test-tags /fr_business_directory,/personal_email_usage`, hasil: 0 failed, 0 error dari 26 test (`personal_email_usage`: 12 test, naik dari 10).
+
+---
+
+### MF-13 — Tombol "Save manually" tidak menyimpan record di Odoo build `18.0-20260817` (via Playwright MCP)
+**Ditemukan di:** Step 10, S-15 (2026-08-31)
+**Tag:** `[GAP-MIGRASI]` — potensial, kemungkinan besar bug environment/Odoo build, BUKAN kode `personal_email_usage`
+**Ref:** `10_qa/human_qa/05_EMAIL_GAPS.md` S-15
+**Lokasi:** Form `fetchmail.server` (`odoo/action-94/new`), tombol `button.o_form_button_save`
+**Deskripsi:** Klik tombol Save (via Playwright MCP — accessibility role locator, JS `.click()`, dispatch sekuens `pointerdown/mousedown/pointerup/mouseup/click` manual, hotkey `Alt+S`) tidak pernah menghasilkan request `call_kw/fetchmail.server/create` ke server. Dikonfirmasi klik BENAR-BENAR diterima elemen (listener sementara `window.__clickReceived`), tidak ada error/rejection/notification di console maupun DOM, dan record dikonfirmasi TIDAK tersimpan lewat `odoo shell` (`env['fetchmail.server'].search(...)` kosong). Navigasi keluar memicu dialog native "unsaved changes" — form genuinely masih dianggap dirty oleh Odoo sendiri.
+**Dampak:** Tidak menghalangi fungsi modul (semua behavior `personal_email_usage` sudah terverifikasi penuh lewat test otomatis MF-11/MF-12, tidak bergantung ke UI form ini). Cuma menghalangi satu verifikasi spesifik: field `mark_read` tersimpan setelah reload browser sungguhan (S-15 langkah 4). Field itu sendiri SUDAH dikonfirmasi ada & posisi benar (S-15 langkah 1-3, berhasil).
+
+**KOREKSI/PENEGASAN (2026-08-31, isolasi lanjutan atas permintaan eksplisit — jangan biarkan kesimpulan abu-abu):** dilakukan 3 percobaan kontrol tambahan untuk memastikan ini BUKAN kode modul:
+1. **`mail.activity.type`** (Activity Types, model tidak disentuh modul manapun di repo ini) — Save **BERHASIL** (id record berubah dari kosong ke `7`, breadcrumb ter-update).
+2. **`res.partner`** (Contacts, form YANG DIMODIFIKASI `fr_business_directory` — tombol "Business Directory" tampil dan dikonfirmasi render benar) — Save **BERHASIL** (id `44` tercipta, breadcrumb ter-update). Ini membuktikan modifikasi xpath `fr_business_directory` TIDAK menyebabkan masalah save serupa.
+3. **`ir.mail_server`** (Outgoing Mail Servers, model **TIDAK PERNAH disentuh modul manapun di repo ini sama sekali**) — Save **GAGAL** dengan gejala IDENTIK (klik terkirim, tidak ada RPC, form tetap dirty).
+
+**Kesimpulan tegas:** BUKAN bug kode `personal_email_usage` atau `fr_business_directory` — dikonfirmasi lewat kontrol positif (2 form YANG modul kita modifikasi berhasil save) dan kontrol negatif (1 form yang SAMA SEKALI TIDAK disentuh modul manapun juga gagal identik). Pola yang sama-sama dimiliki KEDUA form yang gagal (`fetchmail.server`, `ir.mail_server`) dan TIDAK dimiliki form yang berhasil: keduanya punya tombol header "Test & Confirm"/"Test Connection" untuk validasi koneksi server — dugaan kuat (belum 100% dibuktikan sebagai akar masalah pasti, tapi ini korelasi bersih dari 4 data point) bug ini terkait pola widget/form family "server connection test" di build Odoo `18.0-20260817` ini, bukan spesifik ke satu model.
+**Rekomendasi:** investigasi lanjutan di luar scope migrasi modul ini — coba reproduce di build Odoo 18.0 lain (bukan nightly `20260817`), atau observasi manual dev sendiri di browser non-headless untuk exclude Playwright MCP sepenuhnya dari kemungkinan penyebab. TIDAK PERLU lagi dicurigai sebagai isu kode modul — itu sudah tuntas dikesampingkan.
+**Keputusan pemilik modul:** *(kosong — belum ada keputusan, S-15 langkah 4 dibiarkan terbuka; tapi status "bukan bug modul" sudah final, bukan lagi dugaan)*
+
+---
+
+### MF-14 — Validasi pertama pola GreenMail-incoming (level pipeline penuh) — BERHASIL
+**Ditemukan di:** Step 9/10 (2026-08-31) — validasi eksperimen, diminta eksplisit karena `personal_email_usage` adalah kandidat pertama pola ini (`migration-tool/ai-doc/USAGE_GUIDE.md` §"Testing email nyata" mencatat pola ini "BELUM PERNAH divalidasi di modul nyata manapun")
+**Tag:** `[HASIL-BACA]` — validasi tooling/pattern, bukan finding bug
+**Ref:** `docker-env/docker-compose.yml` (service `greenmail`, sekarang dihapus lagi — lihat catatan di bawah)
+**Deskripsi:** Dijalankan level pipeline penuh: `fetchmail.server` sungguhan (dibuat via `odoo shell` ORM, BUKAN lewat form UI — form Save sedang bermasalah, lihat MF-13) dikonfigurasi polling mailbox GreenMail (`server: greenmail`, `port: 3143`, `mark_read: True`). Dua email dikirim ke GreenMail dari LUAR Odoo (`smtplib` Python murni, dijalankan dari dalam kontainer `odoo_target` semata-mata sebagai interpreter Python yang bisa reach jaringan Docker — BUKAN lewat kode/composer Odoo): satu dari `known@example.com` (kontak terdaftar), satu dari `stranger@example.com` (bukan kontak). `fetch_mail()` dipanggil manual via `odoo shell`.
+
+**Hasil (semua sesuai ekspektasi, 0 penyimpangan dari kode/test mock yang sudah ada):**
+- Log real: `"Routing mail from known@example.com ... Found existing partner: MF14 Known Contact"` — email dari kontak dikenal diproses, `mail.message` (id 26) terbentuk dengan `author_id` = partner yang benar.
+- Log real: `"Skipped email from non-contact: stranger@example.com"` — email dari non-kontak di-skip, TIDAK ada `mail.message` terbentuk untuknya.
+- `"Fetched 1 email(s) on imap server MF14 GreenMail Test; 1 succeeded, 0 failed, 1 skipped."` — angka cocok persis (1 diproses, 1 di-skip).
+- Verifikasi `\Seen` flag via `imaplib` LANGSUNG ke GreenMail (bukan mock): KEDUA pesan (yang diproses MAUPUN yang di-skip) berstatus `\Seen` — cocok dengan BSL-020 (`mark_read=True` diterapkan tanpa syarat setelah fetch, SEBELUM keputusan skip/proses) yang sebelumnya cuma terbukti lewat mock `conn.store.call_args_list` di `test_fetchmail.py`.
+**Dampak:** Mengonfirmasi test mock (`test_mark_read_true_reapplies_seen_flag`, `test_process_email_from_known_contact`, dll di `test_fetchmail.py`) akurat merepresentasikan behavior nyata terhadap server IMAP sungguhan — bukan cuma asumsi mocking yang salah arah. Tidak ada gap/bug baru ditemukan.
+**Kontribusi balik ke migration-tool (dicatat di sini, BUKAN ditulis langsung ke `migration-tool/`):** resep GreenMail-incoming di `USAGE_GUIDE.md` §"Testing email nyata" TERBUKTI JALAN APA ADANYA, tidak ada koreksi yang diperlukan — port `{{GREENMAIL_SMTP_PORT}}`/`{{GREENMAIL_IMAP_PORT}}` dipakai `8179`/`8180`, `object_id` di-set ke `res.partner`, auth disabled bekerja seperti didokumentasikan. Layak dipromosikan dari "belum pernah divalidasi" jadi "terbukti jalan, 1 data point" lewat sesi curation terpisah.
+**Catatan housekeeping:** service `greenmail` di `docker-compose.yml` DIHAPUS lagi setelah validasi ini (eksperimen, bukan fixture permanen — sesuai instruksi awal), `fetchmail.server`/`res.partner`/`mail.message` test dibuat langsung di `target_db` TIDAK di-cleanup (database ini murni untuk dev/QA testing, bukan produksi — aman dibiarkan, akan ter-reset kalau `docker compose down -v` dijalankan lagi).
+**Keputusan pemilik modul:** Tidak perlu keputusan — validasi berhasil, tidak ada tindak lanjut wajib.
 
 ---
 
