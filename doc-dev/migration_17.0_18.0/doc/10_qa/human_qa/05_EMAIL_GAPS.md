@@ -125,7 +125,17 @@
 4. Centang, Save — reload halaman, pastikan nilai tersimpan (bukan cuma di-render, benar-benar persisten)
 ```
 **Expected:** Field muncul di posisi benar, toggle tersimpan setelah reload
-**Status:** [ ] Belum dites
+**Status:** ⚠️ **Sebagian dites 2026-08-31 via Playwright MCP** (bukan "kendala tooling" generik — detail konkret di bawah):
+
+- **Langkah 1-3 (Pass, terverifikasi visual nyata):** Developer mode aktif, navigasi Settings → Technical → Incoming Mail Servers → New berhasil lewat Playwright MCP (headless, DOM-based, render sukses — beda dari percobaan S-01 sebelumnya yang gagal total karena webclient tidak mount). Field **"Mark Emails as Read" dikonfirmasi ADA**, posisinya PERSIS setelah "Keep Attachments" di tab Advanced (sesuai xpath `after attach`), checkbox bisa dicentang (state `checked` terkonfirmasi di accessibility snapshot & screenshot).
+- **Langkah 4 (Fail — BUKAN karena modul, kemungkinan bug Odoo build ini):** tombol "Save manually" (`button.o_form_button_save`) TIDAK PERNAH benar-benar menyimpan record, walau dicoba 7 cara berbeda: klik via accessibility role locator (×3), `element.click()` langsung via JS, dispatch manual urutan penuh `pointerdown/mousedown/pointerup/mouseup/click` dengan koordinat asli, hotkey `Alt+S` (sesuai `data-hotkey="s"` di DOM), dan percobaan ulang di form baru yang benar-benar bersih. **Dikonfirmasi ganda:**
+  1. Event `click` genuinely diterima elemen (dibuktikan lewat listener sementara yang di-attach manual — `window.__clickReceived = true`).
+  2. TIDAK ADA request `call_kw/fetchmail.server/create` atau `web_save` apapun yang terkirim ke server (dicek `browser_network_requests` berkali-kali).
+  3. TIDAK ADA error/exception/notification/invalid-field apapun di console, DOM (`.o_notification`, `.o_field_invalid`), maupun `unhandledrejection`/`window.onerror` (listener sementara dipasang, tetap kosong).
+  4. Dikonfirmasi server-side via `odoo shell` langsung: `env['fetchmail.server'].search([('name','like','S-15')])` → recordset KOSONG — record genuinely tidak pernah tersimpan.
+  5. Mencoba navigasi keluar memicu dialog native "unsaved changes" browser — membuktikan form memang masih dianggap dirty oleh Odoo sendiri, konsisten dengan save yang tidak pernah sukses.
+- **Kesimpulan:** klik terkirim & diterima DOM, tapi tidak memicu RPC/error apapun — mengarah ke kemungkinan bug di build Odoo `18.0-20260817` (nightly/dev snapshot) itu sendiri, BUKAN masalah kode `personal_email_usage`, bukan juga masalah render Playwright MCP (render & interaksi field lain semuanya berhasil normal). Belum dikonfirmasi apakah ini reproduce di build Odoo 18.0 stable lain.
+- **Langkah 4 TETAP belum diverifikasi** (persistence setelah reload) — butuh investigasi lebih lanjut (kandidat: coba build Odoo 18.0 berbeda, atau observasi manual dev sendiri di browser non-headless untuk exclude Playwright sepenuhnya) sebelum bisa dianggap selesai.
 
 ---
 
@@ -139,8 +149,8 @@
 | S-12 | Kegagalan koneksi satu server tidak hentikan server lain | Negative | ✅ **Ditutup 2026-08-31** — sebelumnya semua test asumsi `connect()` sukses, belum ada multi-server |
 | S-13 | Server POP3 tetap lewat jalur native, tidak kena filtering | Detail | **BUKAN gap yang terlewat** — persis `AC-08-02`, keputusan sadar Step 8/9, kompleksitas mock POP3 dianggap tidak sepadan |
 | S-14 | `strip_attachments`/`save_original` diteruskan benar | Detail | ✅ **Ditutup 2026-08-31** (`strip_attachments` saja — `save_original` dianggap cukup terwakili) |
-| S-15 | Field "Mark Emails as Read" tampil & tersimpan di UI | Detail | Genuinely belum pernah jadi AC, TETAP belum dites — butuh klik browser sungguhan (kendala tooling sama seperti S-01) |
+| S-15 | Field "Mark Emails as Read" tampil & tersimpan di UI | Detail | ⚠️ **Sebagian ditutup 2026-08-31** — field ADA & posisi benar (Playwright MCP, terverifikasi visual nyata). Persistence (Save) TIDAK bisa diverifikasi — klik terkirim tapi save tidak pernah jalan, kemungkinan bug Odoo build ini, BUKAN masalah modul/Playwright — lihat detail lengkap di bawah |
 
-**Status akhir (2026-08-31):** S-09, S-10, S-11, S-12, S-14 semua ditutup — semuanya PASS saat dieksekusi nyata (tidak ada satupun yang mengungkap bug baru; `personal_email_usage` sekarang 16 test, naik dari 10 di Step 9 awal). Sisa terbuka: **S-13** (bukan gap baru, keputusan sadar Step 9, biarkan kecuali mau override) dan **S-15** (verifikasi UI manual, sama kendala tooling browser seperti S-01 — butuh klik langsung oleh manusia).
+**Status akhir (2026-08-31):** S-09, S-10, S-11, S-12, S-14 semua ditutup — semuanya PASS saat dieksekusi nyata (tidak ada satupun yang mengungkap bug baru; `personal_email_usage` sekarang 16 test, naik dari 10 di Step 9 awal). S-13 diklarifikasi (bukan gap baru, keputusan sadar Step 9). **S-15 SEBAGIAN ditutup** — field `mark_read` dikonfirmasi ADA & posisi benar via Playwright MCP (render sungguhan, bukan lagi kendala tooling seperti S-01), TAPI verifikasi persistence (Save) menemukan kemungkinan bug nyata di build Odoo `18.0-20260817` sendiri (klik terkirim, tidak ada RPC/error, save tidak pernah sukses) — lihat `FINDINGS.md` MF-13 untuk detail lengkap.
 
 **Catatan:** semua skenario yang ditutup PASS tanpa mengungkap bug baru — murni menutup gap cakupan test, bukan menemukan regresi. Kalau S-13/S-15 nanti dijalankan dan ternyata gagal, catat sebagai finding baru (format `MF-NNN` di `FINDINGS.md`, ref ke S-XX ini) dan evaluasi apakah mengganjal Step 11 (UAT) yang sudah diterima.

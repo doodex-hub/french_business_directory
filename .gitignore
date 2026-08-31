@@ -21,3 +21,7 @@ docker-env/logs/
 # Config permission personal (auto-generated saat klik "Always allow" di CLI) — beda dev bisa beda
 # preferensi, jangan dipaksa seragam lewat commit bersama.
 .claude/settings.local.json
+
+# Snapshot/console log Playwright MCP (Step 10 AI-interaktif, USAGE_GUIDE.md §"Setup Playwright MCP")
+# — jejak debug per-sesi, bukan deliverable.
+.playwright-mcp/
