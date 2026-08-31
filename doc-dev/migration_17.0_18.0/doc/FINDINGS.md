@@ -2,7 +2,7 @@
 
 **Modul:** french_business_directory (`fr_business_directory` + `personal_email_usage`)
 **Migrasi:** 17.0 → 18.0
-**Terakhir update:** 2026-08-24
+**Terakhir update:** 2026-08-31
 
 ---
 
@@ -20,6 +20,7 @@
 | MF-08 | `from odoo.tools import logging` gagal `ImportError` di 18.0 — `misc.py` menambahkan `__all__` yang menutup leak implisit stdlib `logging` | 6 (ditemukan lewat G1 dry run nyata, TIDAK terdeteksi Step 2/3 review statis) | `[GAP-MIGRASI]` (dikonfirmasi nyata) | **Tinggi (install-blocking)** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-09) |
 | MF-09 | `matching.etablissement` create() crash (`InvalidDatetimeFormat`) kalau key `date_fermeture` hilang total dari payload API (bukan cuma bernilai kosong) | 9 (ditemukan lewat test suite nyata, bug pre-existing 17.0, TIDAK disebabkan migrasi) | `[DIWARISI-SOURCE]` | Sedang (butuh kondisi API spesifik untuk terpicu) | 🟡 Dicatat, tidak diperbaiki (P1) |
 | MF-10 | `matching.etablissement._compute_activite_principale` membaca `result_id.activite_principale` (nilai level siège/parent), BUKAN field `activite_principale` miliknya sendiri — beda dari yang tersirat di deskripsi BR-07 lama | 9 (ditemukan lewat penulisan test, dikonfirmasi baca kode + eksekusi nyata) | `[DIWARISI-SOURCE]` — koreksi pemahaman, bukan bug baru | Rendah (cuma klarifikasi, behavior tidak berubah dari 17.0) | 🟡 Dicatat, `01b_BASELINE_SPEC.md` BSL-007 dikoreksi |
+| MF-11 | Test case `TC-FLAG-01` (`\Seen` flag sequencing vs `mark_read`, BSL-020) terdokumentasi di backfill lama tapi tidak pernah ter-port ke test suite migrasi ini — Step 9 dulu keliru menyimpulkan "source tidak punya test sama sekali" karena cuma cek `source-codebase`, tidak cek folder backfill terpisah (`french-business-directory-17`) | 9 (gap ditemukan lewat investigasi terpisah, 2026-08-31), ditutup sesi ini | `[DIWARISI-SOURCE]` — gap cakupan test, bukan bug produk | Rendah (cakupan test, BSL-020/MF-05 sendiri sudah lama dikonfirmasi lewat jalur lain) | ✅ RESOLVED — 2 method (`test_mark_read_true_reapplies_seen_flag`, `test_mark_read_false_does_not_reapply_seen_flag`) ditambahkan ke `personal_email_usage/tests/test_fetchmail.py`, dijalankan (`docker compose run` + `--test-enable`), 0 failed/error dari 26 test total |
 
 ---
 
@@ -131,6 +132,18 @@
 **Deskripsi:** Field `activite_principale` yang dipakai untuk translasi label Perancis adalah milik `siret.wizard.result` (level siège/perusahaan), diakses via `record.result_id.activite_principale` — BUKAN field `activite_principale` milik `matching.etablissement` itu sendiri (yang datanya per-etablissement dari `me.get('activite_principale', '')`). Artinya SEMUA etablissement dalam satu hasil pencarian yang sama akan menampilkan translasi yang SAMA (berdasar siège), terlepas kode `activite_principale` masing-masing etablissement individual.
 **Dampak:** Behavior tidak berubah dari 17.0 (kode ini tidak disentuh migrasi) — ini murni klarifikasi pemahaman yang sebelumnya kurang presisi di spec lama (BR-07 backfill menyiratkan translasi berdasar kode etablissement itu sendiri). Dikoreksi di `01b_BASELINE_SPEC.md` BSL-007.
 **Keputusan pemilik modul:** Tidak perlu keputusan — behavior dipertahankan, cuma dokumentasi yang diperjelas.
+
+---
+
+### MF-11 — `TC-FLAG-01` (backfill) tidak pernah ter-port ke test suite migrasi
+**Ditemukan di:** Step 9, gap ditemukan lewat investigasi terpisah (2026-08-31) — ditutup sesi yang sama
+**Tag:** `[DIWARISI-SOURCE]` — gap cakupan test, bukan bug produk baru
+**Ref:** `BSL-020` (`01b_BASELINE_SPEC.md`), `F-07`/`BR-03` (backfill), `TC-FLAG-01` (`french-business-directory-17/doc-dev/backfill/test/personal_email_usage/04A_DEV_TESTING.md:66-71`)
+**Lokasi:** `personal_email_usage/tests/test_fetchmail.py` (baru), `personal_email_usage/models/mail.py:75-77` (mekanisme `\Seen` yang diverifikasi)
+**Deskripsi:** `09_DEV_TESTING.md` (Step 9, 2026-08-24) menyimpulkan "source module tidak pernah punya test sama sekali" berdasarkan cek `source-codebase` saja — klaim itu benar untuk `source-codebase` (branch `migration/17.0_source`), TAPI folder terpisah `french-business-directory-17` (hasil backfill 2026-08-07, tidak dipakai sebagai `source-codebase` project ini — lihat keputusan Step 1 "Clone baru bersih") justru punya dokumentasi test case lengkap (`TC-FLAG-01`, `TC-SKIP-01`, `TC-LOG-01`) yang tidak pernah ikut disurvei. `TC-FLAG-01` spesifik menguji mekanisme `\Seen` flag (`mark_read=True` → `+FLAGS \Seen` dipanggil; `mark_read=False` → tidak) yang jadi dasar bug BSL-020/MF-05 — sudah didokumentasikan benar di baseline spec, tapi belum ada bukti test otomatis untuk mekanisme flag itu sendiri (test lama yang ada cuma menguji sisi `processed_message_ids`, bukan sisi `\Seen`).
+**Dampak:** Murni gap cakupan test — BSL-020/MF-05 sudah dikonfirmasi lewat pembacaan kode + Step 8 review, jadi tidak ada risiko fungsional baru. Tapi tanpa test ini, regresi di masa depan pada mekanisme `\Seen` (mis. saat modul lain ikut disentuh) tidak akan tertangkap otomatis.
+**Rekomendasi:** Port `TC-FLAG-01` #01 dan #02 sebagai test otomatis.
+**Keputusan pemilik modul:** ✅ Diterapkan 2026-08-31 — 2 method ditambahkan ke `test_fetchmail.py` (`test_mark_read_true_reapplies_seen_flag`, `test_mark_read_false_does_not_reapply_seen_flag`), dijalankan via `docker compose run --rm odoo_target odoo ... --test-enable --test-tags /fr_business_directory,/personal_email_usage`, hasil: 0 failed, 0 error dari 26 test (`personal_email_usage`: 12 test, naik dari 10).
 
 ---
 

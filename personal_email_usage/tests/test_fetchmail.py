@@ -101,6 +101,40 @@ class TestFetchmailOverride(TransactionCase):
             self.imap_server.fetch_mail()
         self.assertIn('<ok@example.com>', self.imap_server.processed_message_ids)
 
+    def test_mark_read_true_reapplies_seen_flag(self):
+        """AC-03-01 [TC-FLAG-01] BSL-020 — mark_read=True re-applies \\Seen after fetch."""
+        server_mr_true = self.env['fetchmail.server'].create({
+            'name': 'Test IMAP mark_read=True',
+            'server_type': 'imap',
+            'server': 'imap.example.com',
+            'port': 993,
+            'is_ssl': True,
+            'user': 'box2@example.com',
+            'password': 'x',
+            'state': 'draft',
+            'object_id': self.imap_server.object_id.id,
+            'mark_read': True,
+        })
+        conn = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<mr-true@example.com>')})
+        with patch.object(type(server_mr_true), 'connect', return_value=conn), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999), \
+             patch.object(self.env.cr, 'commit'):
+            server_mr_true.fetch_mail()
+        seen_calls = [c for c in conn.store.call_args_list if c.args[1:] == ('+FLAGS', '\\Seen')]
+        self.assertTrue(seen_calls, "mark_read=True should re-apply \\Seen after fetch")
+
+    def test_mark_read_false_does_not_reapply_seen_flag(self):
+        """AC-03-02 [TC-FLAG-01] BSL-020 — mark_read=False (default) leaves the message Unseen."""
+        conn = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<mr-false@example.com>')})
+        with patch.object(type(self.imap_server), 'connect', return_value=conn), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999), \
+             patch.object(self.env.cr, 'commit'):
+            self.imap_server.fetch_mail()
+        seen_calls = [c for c in conn.store.call_args_list if c.args[1:] == ('+FLAGS', '\\Seen')]
+        self.assertFalse(seen_calls, "mark_read=False (default) should leave the message Unseen")
+        unseen_calls = [c for c in conn.store.call_args_list if c.args[1:] == ('-FLAGS', '\\Seen')]
+        self.assertTrue(unseen_calls, "the -FLAGS \\Seen call should always happen right after fetch")
+
     def test_message_new_returns_existing_partner(self):
         """AC-10-01 — message_new() on res.partner returns the existing partner matched by email, not a new one."""
         partner_count_before = self.env['res.partner'].search_count([])
