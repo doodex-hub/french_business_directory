@@ -94,7 +94,7 @@
 3. Assert: parent fetch_mail() (native, non-IMAP path) terpanggil untuk server POP3, logic filtering (mark_read/skip user/skip non-contact) TIDAK diterapkan padanya
 ```
 **Expected:** Server POP3 tidak tersentuh logic filtering modul ini — perilaku sama seperti sebelum modul diinstall
-**Status:** [ ] Belum dites
+**Status:** Belum dites otomatis — diverifikasi via code review Step 8, keputusan sadar AC-08-02 (`05a_MIGRATION_ACCEPTANCE_CRITERIA.md`), kompleksitas mock POP3 dianggap tidak sepadan untuk modul ini. Bukan gap yang terlewat.
 
 ---
 
@@ -137,7 +137,7 @@
 | S-10 | Message-ID duplikat di-skip, tidak diproses ulang | Detail | ✅ **Ditutup 2026-08-31** — sebelumnya cuma dites "tersimpan", bukan "efektif mencegah reproses" |
 | S-11 | Exception di `message_process()` tidak menghentikan batch | Negative | ✅ **Ditutup 2026-08-31** — sebelumnya try/except per-email tidak pernah dipicu di test |
 | S-12 | Kegagalan koneksi satu server tidak hentikan server lain | Negative | ✅ **Ditutup 2026-08-31** — sebelumnya semua test asumsi `connect()` sukses, belum ada multi-server |
-| S-13 | Server POP3 tetap lewat jalur native, tidak kena filtering | Detail | **BUKAN baru** — persis `AC-08-02`, sudah disclosure di Step 9 dengan alasan eksplisit, tetap tidak diimplementasikan (keputusan sadar) |
+| S-13 | Server POP3 tetap lewat jalur native, tidak kena filtering | Detail | **BUKAN gap yang terlewat** — persis `AC-08-02`, keputusan sadar Step 8/9, kompleksitas mock POP3 dianggap tidak sepadan |
 | S-14 | `strip_attachments`/`save_original` diteruskan benar | Detail | ✅ **Ditutup 2026-08-31** (`strip_attachments` saja — `save_original` dianggap cukup terwakili) |
 | S-15 | Field "Mark Emails as Read" tampil & tersimpan di UI | Detail | Genuinely belum pernah jadi AC, TETAP belum dites — butuh klik browser sungguhan (kendala tooling sama seperti S-01) |
 
