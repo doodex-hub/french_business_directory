@@ -2,7 +2,7 @@
 
 **Modul:** french_business_directory (`fr_business_directory`, `personal_email_usage`)
 **Migrasi:** 18.0 → 19.0
-**Terakhir update:** 2026-08-26
+**Terakhir update:** 2026-08-31
 
 ---
 
@@ -13,6 +13,7 @@
 | MF-01 | `fetchmail.server.fetch_mail()` signature berubah lagi di 19.0 (parameter `raise_exception` dihapus) | Step 1/2 | `[GAP-MIGRASI]` | Tinggi (install-jalan-tapi-cron-crash) | Rekomendasi ditentukan, diterapkan Step 6 |
 | MF-02 | `res.partner.siret` (l10n_fr) dihapus, dikonsolidasi ke `company_registry` generik | Step 1/2 | `[GAP-MIGRASI]` | Tinggi (fitur utama `fr_business_directory` — tombol "Select" akan gagal) | Rekomendasi ditentukan, diterapkan Step 6 |
 | MF-03 | `fetchmail.server` — arsitektur internal 19.0 dirombak total, cron TIDAK LAGI memanggil `fetch_mail()` (public) — override modul jadi TIDAK PERNAH TERPANGGIL oleh cron. Ditemukan G1 (Step 9), TIDAK terdeteksi Step 2 review statis. | Step 9 (G1) | `[GAP-MIGRASI]` | **Kritis** (fitur inti `personal_email_usage` berhenti berfungsi via cron, silent — tidak error, cuma tidak jalan) | ✅ **RESOLVED** — user menyetujui rekomendasi AI 2026-08-26, fix diterapkan (override dipindah ke `_fetch_mail()`, `connect()`→`_connect__()`), menunggu G1 rerun untuk verifikasi |
+| MF-04 | Carry-over dari project 17→18: 6 test penutup gap cakupan (`05_EMAIL_GAPS.md` S-10/S-11/S-12/S-14, TC-FLAG-01 mark_read) ditulis project 17→18 tanggal 2026-08-31 (SETELAH migrasi 18→19 ini selesai 2026-08-26) — belum ada di `test_fetchmail.py` project ini. Di-port + disesuaikan ke MF-03 (`_connect__`/`_fetch_mail`). Ditemukan sekaligus: `self._cr.commit()` di `mail.py:138` memicu `DeprecationWarning` 19.0 (bukan error, belum wajib fix). | Step 10/11 (carry-over pasca-UAT) | `[GAP-MIGRASI]` (test coverage) + `[NO-SPEC]` (deprecation warning) | Rendah (test coverage sudah lengkap 30/30 pass; deprecation belum breaking) | ✅ **RESOLVED** (porting+G1 rerun) — deprecation warning dicatat, belum diperbaiki (lihat detail) |
 
 ---
 
@@ -64,6 +65,25 @@
 3. Untuk implementasi IMAP custom: PALING AMAN adalah TETAP pakai raw imaplib manual seperti sekarang (bukan ikut arsitektur wrapper `OdooIMAP4` baru — itu perubahan gaya/style, bukan wajib kompatibilitas), cukup ganti `server.connect()` → `server._connect__()` (satu-satunya perubahan wajib di titik ini, method lama sudah private-renamed, bukan dihapus fungsinya).
 **Risiko rekomendasi ini:** Rendah-Sedang — mempertahankan implementasi manual existing (perilaku sudah terbukti benar & diuji 23 test), cuma pindah "titik pasang" override dan satu rename method koneksi. Tidak ikut arsitektur baru sepenuhnya (tidak pakai `try_lock_for_update`/batching baru) — ini KONSISTEN dengan prinsip "port kode saja, jangan refactor demi mengikuti gaya baru kecuali wajib kompatibilitas".
 **Keputusan pemilik modul:** ✅ **Disetujui 2026-08-26** — terapkan rekomendasi AI (override `_fetch_mail()`, pertahankan raw-imaplib existing, ganti `connect()`→`_connect__()`). Diterapkan di `personal_email_usage/models/mail.py`: method di-rename `fetch_mail(self)` → `_fetch_mail(self, batch_limit=50)`, `server.connect()` → `server._connect__()`, delegasi akhir jadi `super(...)._fetch_mail(batch_limit=batch_limit)` (aman dipanggil pada recordset kosong — beda dari `fetch_mail()` yang butuh `ensure_one()`). Test terkait diupdate (`test_fetch_mail_accepts_no_args` menguji `_fetch_mail()` langsung, assert `None` bukan `True`; 5 test IMAP lain di-patch `_connect__` bukan `connect`).
+
+---
+
+### MF-04 — Carry-over test gap dari project 17→18 (S-10/S-11/S-12/S-14/TC-FLAG-01) + deprecation warning `_cr.commit()`
+**Ditemukan di:** Step 10/11 carry-over, 2026-08-31 (dikerjakan dari sesi project migrasi 17→18, direkonsiliasi ke sini)
+**Tag:** `[GAP-MIGRASI]` (test coverage) + `[NO-SPEC]` (deprecation warning, informasional)
+**Ref:** `french-business-directory-migration-18/doc-dev/migration_17.0_18.0/doc/10_qa/human_qa/05_EMAIL_GAPS.md` (S-10, S-11, S-12, S-14), `FINDINGS.md` project 17→18 MF-11/MF-12, [[MF-03]] (rename `_connect__`/`_fetch_mail` yang jadi acuan adaptasi)
+**Lokasi:** `personal_email_usage/tests/test_fetchmail.py`
+
+**Kronologi:** migrasi 18.0→19.0 ini (project ini) selesai penuh 2026-08-26, termasuk Step 9-11. Setelah itu, project migrasi 17.0→18.0 (repo terpisah) menutup 4 gap cakupan test yang ditemukan lewat review manual Step 10 QA (S-10 duplicate message-id, S-11 exception di satu email tidak menghentikan batch, S-12 kegagalan connect satu server tidak memblokir server lain, S-14 flag `attach`/`strip_attachments`) plus 2 test `TC-FLAG-01` (mark_read true/false) yang diporting dari backfill 17.0 — total 6 method test baru, ditulis 2026-08-31. Project 19.0 ini (selesai lebih dulu, 2026-08-26) otomatis TIDAK punya 6 test itu.
+
+**Tindakan:** 6 method di-port ke `test_fetchmail.py` project ini, disesuaikan ke arsitektur [[MF-03]]:
+- `patch.object(type(...), 'connect', ...)` → `patch.object(type(...), '_connect__', ...)` (5 test).
+- `test_one_server_connect_failure_does_not_block_other_servers` (S-12): versi 17→18 memanggil `(server_a + server_b).fetch_mail()` pada recordset 2-record. Di 19.0 `fetch_mail()` adalah wrapper publik core yang mewajibkan `ensure_one()` ([[MF-03]] poin 1) — recordset multi-record akan `ValueError`. Diubah panggil `_fetch_mail()` langsung (aman dipanggil non-singleton, konsisten dengan cara core sendiri memanggilnya dari cron).
+- Test lain tetap panggil `.fetch_mail()` (wrapper publik) pada 1 record — valid karena `ensure_one()` otomatis lolos.
+
+**Verifikasi:** G1 rerun penuh (`docker compose up`, `--test-tags=/fr_business_directory,/personal_email_usage`, `image: odoo:19.0`) — hasil `odoo.tests.result: 0 failed, 0 error(s) of 30 tests when loading database 'target_db_19'` (24 test lama + 6 test baru, semua lolos).
+
+**Temuan tambahan (bukan bug, informasional):** log G1 menunjukkan `DeprecationWarning` di `personal_email_usage/models/mail.py:138` (`self._cr.commit()`) — "Deprecated since 19.0, use self.env.cr directly". Ini WARNING, bukan error — test tetap lolos, tidak ada perilaku yang berubah. Belum diperbaiki di sesi ini (di luar scope carry-over test-gap; port kode 19.0 sendiri sudah selesai & disetujui via [[MF-03]], mengubah `self._cr` → `self.env.cr` di titik ini adalah perubahan gaya kecil, bukan wajib kompatibilitas — TIDAK dilakukan tanpa persetujuan eksplisit sesuai prinsip "jangan refactor demi mengikuti gaya baru kecuali wajib"). Catat sebagai kandidat carry-over ringan ke migrasi 19.0→20.0 berikutnya kalau `self._cr` benar-benar dihapus (bukan cuma deprecated) di versi itu.
 
 ---
 

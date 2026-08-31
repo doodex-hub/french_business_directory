@@ -110,6 +110,117 @@ class TestFetchmailOverride(TransactionCase):
             self.imap_server.fetch_mail()
         self.assertIn('<ok@example.com>', self.imap_server.processed_message_ids)
 
+    def test_mark_read_true_reapplies_seen_flag(self):
+        """AC-03-01 [TC-FLAG-01] BSL-020 — mark_read=True re-applies \\Seen after fetch."""
+        server_mr_true = self.env['fetchmail.server'].create({
+            'name': 'Test IMAP mark_read=True',
+            'server_type': 'imap',
+            'server': 'imap.example.com',
+            'port': 993,
+            'is_ssl': True,
+            'user': 'box2@example.com',
+            'password': 'x',
+            'state': 'draft',
+            'object_id': self.imap_server.object_id.id,
+            'mark_read': True,
+        })
+        conn = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<mr-true@example.com>')})
+        with patch.object(type(server_mr_true), '_connect__', return_value=conn), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999), \
+             patch.object(self.env.cr, 'commit'):
+            server_mr_true.fetch_mail()
+        seen_calls = [c for c in conn.store.call_args_list if c.args[1:] == ('+FLAGS', '\\Seen')]
+        self.assertTrue(seen_calls, "mark_read=True should re-apply \\Seen after fetch")
+
+    def test_mark_read_false_does_not_reapply_seen_flag(self):
+        """AC-03-02 [TC-FLAG-01] BSL-020 — mark_read=False (default) leaves the message Unseen."""
+        conn = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<mr-false@example.com>')})
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999), \
+             patch.object(self.env.cr, 'commit'):
+            self.imap_server.fetch_mail()
+        seen_calls = [c for c in conn.store.call_args_list if c.args[1:] == ('+FLAGS', '\\Seen')]
+        self.assertFalse(seen_calls, "mark_read=False (default) should leave the message Unseen")
+        unseen_calls = [c for c in conn.store.call_args_list if c.args[1:] == ('-FLAGS', '\\Seen')]
+        self.assertTrue(unseen_calls, "the -FLAGS \\Seen call should always happen right after fetch")
+
+    def test_duplicate_message_id_skipped_on_repeat_fetch(self):
+        """S-10 (05_EMAIL_GAPS.md, project 17→18) — a message-id already in processed_message_ids is
+        skipped on a later fetch, not reprocessed, even if it still shows up in the UNSEEN search
+        (mark_read=False leaves it unread so a later cron run would otherwise see it again)."""
+        conn1 = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<dup@example.com>')})
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn1), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999) as mock_process, \
+             patch.object(self.env.cr, 'commit'):
+            self.imap_server.fetch_mail()
+        self.assertEqual(mock_process.call_count, 1)
+        self.assertIn('<dup@example.com>', self.imap_server.processed_message_ids)
+
+        conn2 = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<dup@example.com>')})
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn2), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999) as mock_process2, \
+             patch.object(self.env.cr, 'commit'):
+            self.imap_server.fetch_mail()
+        mock_process2.assert_not_called()
+
+    def test_message_process_exception_does_not_abort_batch(self):
+        """S-11 (05_EMAIL_GAPS.md, project 17→18) — one email raising in message_process() doesn't stop
+        the batch; the next email in the same fetch is still processed, and the failing message-id is
+        NOT recorded as processed (so it will be retried on the next cron run)."""
+        conn = _mock_imap(['1', '2'], {
+            '1': _raw_email('known@example.com', message_id='<fail@example.com>'),
+            '2': _raw_email('known@example.com', message_id='<ok@example.com>'),
+        })
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
+             patch.object(type(self.env['mail.thread']), 'message_process', side_effect=[Exception('boom'), 999]) as mock_process, \
+             patch.object(self.env.cr, 'commit'):
+            self.imap_server.fetch_mail()
+        self.assertEqual(mock_process.call_count, 2)
+        self.assertNotIn('<fail@example.com>', self.imap_server.processed_message_ids)
+        self.assertIn('<ok@example.com>', self.imap_server.processed_message_ids)
+
+    def test_one_server_connect_failure_does_not_block_other_servers(self):
+        """S-12 (05_EMAIL_GAPS.md, project 17→18) — a _connect__() failure on one IMAP server doesn't
+        stop other IMAP servers in the same batch (the loop is per-server, wrapped in its own
+        try/except). Calls _fetch_mail() directly (not fetch_mail()) — fetch_mail() is 19.0 core's
+        public wrapper and requires ensure_one(), so it cannot run on a 2-record recordset; see MF-03."""
+        server_b = self.env['fetchmail.server'].create({
+            'name': 'Test IMAP B',
+            'server_type': 'imap',
+            'server': 'imap2.example.com',
+            'port': 993,
+            'is_ssl': True,
+            'user': 'box3@example.com',
+            'password': 'x',
+            'state': 'draft',
+            'object_id': self.imap_server.object_id.id,
+        })
+        conn_b = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<serverb@example.com>')})
+        with patch.object(type(self.imap_server), '_connect__', side_effect=[Exception('auth failed'), conn_b]), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999) as mock_process, \
+             patch.object(self.env.cr, 'commit'):
+            (self.imap_server + server_b)._fetch_mail()
+        mock_process.assert_called_once()
+
+    def test_attach_and_original_flags_forwarded_to_message_process(self):
+        """S-14 (05_EMAIL_GAPS.md, project 17→18) — server.attach controls strip_attachments passed to
+        message_process (strip_attachments = not server.attach)."""
+        self.imap_server.attach = False
+        conn = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<flags1@example.com>')})
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999) as mock_process, \
+             patch.object(self.env.cr, 'commit'):
+            self.imap_server.fetch_mail()
+        self.assertTrue(mock_process.call_args.kwargs['strip_attachments'])
+
+        self.imap_server.attach = True
+        conn2 = _mock_imap(['1'], {'1': _raw_email('known@example.com', message_id='<flags2@example.com>')})
+        with patch.object(type(self.imap_server), '_connect__', return_value=conn2), \
+             patch.object(type(self.env['mail.thread']), 'message_process', return_value=999) as mock_process2, \
+             patch.object(self.env.cr, 'commit'):
+            self.imap_server.fetch_mail()
+        self.assertFalse(mock_process2.call_args.kwargs['strip_attachments'])
+
     def test_message_new_returns_existing_partner(self):
         """AC-10-01 — message_new() on res.partner returns the existing partner matched by email, not a new one."""
         partner_count_before = self.env['res.partner'].search_count([])
