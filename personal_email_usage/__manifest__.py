@@ -45,11 +45,13 @@ Technical Details:
         'views/mail_views.xml',
     ],
 
-    'images': ['static/description/banner.png'],
+    'images': [
+       'static/description/banner.gif',
+       'static/description/icon.png',
+    ],
     'license': 'LGPL-3',
 
     'installable': True,
     'application': True,
     'auto_install': False,
 }
-
