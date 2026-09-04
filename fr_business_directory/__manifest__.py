@@ -25,10 +25,10 @@
         "views/siret_wizard_views.xml",
     ],
     'images': [
-        'static/description/banner.png',
+        'static/description/banner.gif',
+        'static/description/icon.png',
     ],
 
     'assets': {
     },
 }
-
