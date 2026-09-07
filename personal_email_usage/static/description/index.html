@@ -1,144 +1,1106 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Email Usage</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-</head>
-<body style="font-family: 'Roboto', sans-serif; margin: 0; padding: 0; box-sizing: border-box; background-color: #fff; color: #333;">
+<html lang="en"><head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>
+         Personal Email Usage - Odoo 19 incoming mail filter: skip internal
+         users, skip unknown senders, never auto-create contacts
+      </title>
+      <meta name="description" content="Free Odoo 19 module by Doodex: filter incoming IMAP mail so only known contacts get through, internal users are skipped, and no contact is ever created by email. LGPL-3.">
+   </head>
+   <body>
+      <!-- ==========================================================================
+  Personal Email Usage - Odoo Apps Store listing description
+  Odoo 19.0 | module version 19.0.1.0.0 | LGPL-3 | Doodex
 
-<header class="hero" style="background-color: #ebac55; color: #fff; text-align: center; padding: 100px 20px; position: relative;">
-    <div class="logos" style="margin-bottom: 20px;">
-        <img src="./assets/doodex_odoo.png" alt="Company Logo" style="max-height: 100px;">
-    </div>
-    <h1 style="font-size: 3rem; color: #ffffff; font-weight: 700;">Personal Email Usage</h1>
-    <p style="font-size: 1.25rem; font-weight: 400;">Advanced controls for email fetching: read status, sender filtering, and contact validation.</p>
-    <a href="#features" class="btn btn-light btn-lg mt-4" style="background-color: #fff; color: #685563; border: none; padding: 10px 20px; text-decoration: none;">Learn More</a>
-</header>
+  PASTE TARGET: the "Description" field of the Odoo Apps Store upload, and the
+  file personal_email_usage/static/description/index.html in the module.
+  Upload ./assets, folders and all, next to this file. Nothing here loads an
+  image from anywhere else.
 
-<div class="container" style="padding: 40px 20px;">
-    <section id="features" class="features-section" style="background-color: #ebac55; color: #fff; padding: 40px 20px;">
-        <h2 style="font-weight: 700; text-align: center; color: #ffffff;">Features</h2>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="feature-card" style="background-color: #fff; color: #333; border: none; margin: 20px 0; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); padding: 20px;">
-                    <h3 style="font-weight: 700;">Read Status Control</h3>
-                    <p style="font-weight: 300;">Choose whether fetched emails should be marked as read or remain unread in the email server.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-card" style="background-color: #fff; color: #333; border: none; margin: 20px 0; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); padding: 20px;">
-                    <h3 style="font-weight: 700;">User Email Filtering</h3>
-                    <p style="font-weight: 300;">Automatically skips emails sent from internal Odoo users.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-card" style="background-color: #fff; color: #333; border: none; margin: 20px 0; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); padding: 20px;">
-                    <h3 style="font-weight: 700;">Contact Validation</h3>
-                    <p style="font-weight: 300;">Only processes emails from senders that exist in your contacts.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+  HOW THIS FILE IS BUILT, and why it looks the way it does
+  --------------------------------------------------------
+  The store runs odoo.tools.mail.html_sanitize() over the description. It
+  deletes the head, STYLE and SCRIPT elements, and it may also delete every
+  inline CSS property outside its own whitelist. This page is written for that
+  worst case.
 
-    <section id="screenshots" style="padding: 40px 20px;">
-        <h2 style="font-weight: 700; padding-bottom: 20px;">Screenshots</h2>
-        <div class="image-section" style="text-align: center; margin-bottom: 40px;">
-            <img src="./assets/personal_email_usage.png" alt="Descriptive Image" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-        </div>
-    </section>
+   * NOTHING DEPENDS ON THE STYLE BLOCK. Every rule that matters is in a style
+     attribute, using whitelisted properties only. Delete the STYLE element
+     below and the page is unchanged in substance - that is the test, and
+     tools/check_store_html.py performs it.
+     NEVER write, they are silently removed:
+       background (shorthand!)     -> background-color
+       box-shadow                  -> border-width / border-style / border-color
+       border-left / border-right  -> border-left-width / -style / -color
+       rgba(...)                   -> a solid hex mixed against its own ground
+       display:grid / flex, gap, grid-template-columns, align-items,
+       justify-content, flex-*     -> a real TABLE, see below
+       position / top / left       -> restructure, or bake it into the image
+       transform, overflow, cursor, box-sizing, CSS variables, counters,
+       ::before / ::after, @media  -> dropped, no equivalent
+   * LAYOUT IS REAL TABLE MARKUP, and depends on no stylesheet at all. Bootstrap
+     is not served reliably to the description fragment, so no layout here uses
+     a class. table-layout:fixed gives equal columns, border-spacing is the
+     gutter (with matching negative margins on a wrapper so the cell edges still
+     line up with the text), and where the block is a row of cards THE CARD IS
+     THE TD - cells in a row are the same height by definition, which is what
+     flex-direction:column was for. A card whose footer used to be pinned by
+     margin-top:auto holds a two-row inner table at height:100%.
+   * NO ELEMENT SETS BOTH A WIDTH AND A PADDING. box-sizing is not on the
+     whitelist either, so whether the two add up or nest depends on a stylesheet
+     this page cannot count on. The content column is 1032px wide with the 24px
+     inset on the full-width band around it.
+   * NO ::before / ::after. Every decorative diamond, dot, plus sign and step
+     number is a real SPAN carrying its own inline size and colour. The three
+     CONNECTOR RAILS are drawn with borders, not pseudo-elements:
+       - the five-step chain: each step holds a 3-column table whose outer cells
+         are middle-aligned SPANs with a background-colour, so the segments meet
+         the circle at its vertical centre (first and last segments omitted);
+       - the setup steps: a border-left on the number cell, with the disc pulled
+         onto it by margin-left:-16px and the wrapper inset by the same amount;
+       - the release timeline: a border-left on a wrapper DIV, with the coral dot
+         as a direct child of that div (a dot inside a table cell is painted
+         UNDER the collapsed cell border and comes out half-covered).
+   * EVERY FIXED-SIZE IMAGE CARRIES max-width:none AND min-width:<its width>.
+     width alone does NOT hold a replaced element open - it is a suggestion a
+     narrow table cell or a stylesheet img rule can shrink past, and with height
+     pinned in px the picture then arrives squashed (this shipped once, on the
+     product_history_report listing: 20x20 icons rendered 11-17px wide). Fluid
+     images (width:100% + height:auto) keep max-width:100% instead, which is
+     safe because nothing pins their height.
+   * NO box-sizing ANYWHERE, and the STYLE block does not set it either. If it
+     did, every element that carries both a size and a border would change size
+     the moment the store kills the block. The chain circle is therefore
+     54x54 + a 2px border = the 58px the design calls for, in both cases.
+     tools/check_store_html.py plus a render of the sanitised output confirm the
+     two are pixel-identical.
+   * RESPONSIVE TYPE IS clamp(), not @media - a media query cannot live in a
+     style attribute, but a clamp() value passes through the sanitiser intact.
+   * ZERO SCRIPT tags of our own. The FAQ is a DETAILS accordion. Note `open` is
+     NOT a safe attribute and is stripped under strict flags, so every summary
+     must read correctly closed.
+   * PURE ASCII. The store serves the fragment with no charset of its own, so a
+     raw UTF-8 character is read as Windows-1252 and shown as mojibake. Write
+     &mdash; and &middot;, never the character itself.
+   * LINKS ARE CONSTRAINED BY THE VENDOR GUIDELINES. Only static/description
+     resources, canonical YouTube, Microsoft Teams, mailto: and skype: survive;
+     every other external link is invalidated. So the other Doodex modules are
+     linked as root-relative /apps/modules/19.0/... paths, and the booking and
+     WhatsApp cards carry NO href at all - their destination is printed beside
+     them as text and encoded in the QR image. The printed text and the QR
+     payload must match byte for byte. Do not paste an http(s) URL into an href
+     on this page.
+   * THIS IS THE 19.0 EDITION, derived from the 17.0 build by
+     version_16_18_19/tools/make_versions.py - edit the 17.0 build and
+     re-run it, never edit this file by hand. Every string that names a
+     version follows this edition EXCEPT the alt texts and the hero
+     caption: every screenshot and GIF under ./assets is a capture of an
+     Odoo 17 database, so those describe the picture without a version
+     number rather than claim one. assets/feat-12-install-clean.png still
+     shows "Latest Version 17.0.1.0.0" in its own pixels and wants
+     retaking.
+   * THE THREE CROSS-SELL LINKS point at the 19.0 series. Measured against
+     apps.odoo.com on 2026-09-07, only Growth Suite 17.0 is actually
+     published: the 18.0 pages and the two Flow Survey 19.0 pages answer
+     200 but read "unpublished", and Growth Suite 19.0 is a hard 404.
+     Following the series is deliberate - the links become correct as the
+     companion builds are published. Re-check before upload.
+   * IDS ARE PREFIXED peu- because they land in the store page's own document.
 
-    <section id="benefits" class="my-5">
-        <h2 style="font-weight: 700;">Benefits</h2>
-        <ul>
-            <li><strong>Enhanced Email Management:</strong> Control whether fetched emails are marked as read or unread, maintaining better email organization across systems.</li>
-            <li><strong>Reduced Email Clutter:</strong> Automatically skip processing internal user emails, preventing duplicate messages and maintaining clean communication threads.</li>
-            <li><strong>Improved Security:</strong> Only process emails from verified contacts in your database, reducing spam and unauthorized communications.</li>
-            <li><strong>Better Resource Utilization:</strong> Optimize server resources by processing only relevant emails from known senders.</li>
-            <li><strong>Streamlined Communication Flow:</strong> Ensure that only business-relevant emails from legitimate contacts are processed into your Odoo system.</li>
-        </ul>
-    </section>
+  Verify every change with:  python3 tools/check_store_html.py <this file>
+  It runs Odoo's own html_sanitize() over the file and reports what the store
+  would drop. It must come back with 0 errors.
+========================================================================== -->
+<div class="peu" style="background-color: #ffffff; color: #525252; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.65">
+<style>
+/* ==========================================================================
+   NOT LOAD-BEARING. Everything that matters is in a style attribute using
+   properties on Odoo's whitelist, including the whole layout, which is real
+   table markup. Delete this element and the page is unchanged in substance
+   - tools/check_store_html.py performs exactly that test.
 
-    <section id="installation" class="my-5">
-        <h2 style="font-weight: 700;">Installation</h2>
-        <ol>
-            <li>Download the module from this repository.</li>
-            <li>Install the module in your Odoo instance.</li>
-            <li>Navigate to Settings → Technical → Email → Incoming Mail Servers.</li>
-            <li>In the Advanced tab, you'll find the new "Mark Emails as Read" option.</li>
-            <li>Configure the option according to your needs:
-                <ul style="margin-top: 10px;">
-                    <li>Check it to mark fetched emails as read in your email server</li>
-                    <li>Uncheck it to keep fetched emails unread</li>
-                </ul>
-            </li>
-        </ol>
-    </section>
+   What lives here is progressive enhancement only:
+     * hover and [open] states, which cannot be inlined at all;
+     * the mobile collapse, which turns the layout tables into a single
+       column under 820px. On a phone with this block killed the tables stay
+       side by side and get narrow, which is legible but tight.
+   ========================================================================== */
+/* NO box-sizing rule on purpose: the store kills this block, so any element that
+   set both a size and a border/padding would change size between preview and
+   store. Nothing here needs it - see the header comment. */
+.peu img { max-width: 100%; }
 
-    <section id="usage" class="my-5">
-        <h2 style="font-weight: 700;">Usage</h2>
-        <p>Once installed, the module automatically enhances your email fetching process with the features Read Status Control, User Email Filtering, Contact Validation.</p>
-    </section>
+/* hover / open states */
+.peu .jump a:hover { background-color: #f4eef8; color: #270140; }
+.peu .pbtn { transition: opacity .15s ease; }
+.peu .pbtn:hover { opacity: .9; }
+.peu .mini:hover { text-decoration: underline; }
+.peu .faq > summary:hover span { color: #e85c52; }
+.peu .faq > summary { list-style: none; cursor: pointer; }
+.peu .faq > summary::-webkit-details-marker { display: none; }
+.peu .faq > summary::marker { content: ""; }
 
-    <section id="compatibility" class="my-5">
-        <h2 style="font-weight: 700;">Compatibility</h2>
-        <p>Odoo version: 17.0</p>
-    </section>
+/* mobile: unstack the layout tables */
+@media (max-width: 820px) {
+   .peu table.lay,
+   .peu table.lay tbody,
+   .peu table.lay tr,
+   .peu table.lay td { display: block !important; width: auto !important; }
+   .peu table.lay td { margin-bottom: 14px; }
+   .peu table.lay td:empty { display: none !important; }
+}
+</style>
 
-    <section id="license" class="my-5">
-        <h2 style="font-weight: 700;">License</h2>
-        <p>This module is licensed under LGPLv3 licensed.</p>
-    </section>
-
-    <div class="separator" style="border-top: 1px solid #ddd; margin: 40px 0;"></div>
-
-    <section id="about" class="my-5">
-        <h2 style="font-weight: 700;"></h2>
-        <p>Welcome to Doodex: Your Partner in Tailor-Made Odoo Solutions</p>
-        <p>At Doodex, we believe that every business is unique, with its own set of challenges and opportunities. That’s why we specialize in delivering customized Odoo solutions tailored to meet the specific needs of your organization. Our expertise in Python development and deep understanding of the Odoo platform enable us to provide unparalleled services that drive efficiency, enhance productivity, and support your business growth.</p>
-        <h3 style="font-weight: 700;">About Doodex</h3>
-        <p>Doodex is a leading provider of business management solutions built on the Odoo framework. With a focus on customization and flexibility, we offer a wide range of services designed to optimize your business processes. Our team of experienced developers and consultants work closely with you to understand your requirements and deliver solutions that are perfectly aligned with your business goals.</p>
-        <h3 style="font-weight: 700;">Our Services</h3>
-        <ul>
-            <li><strong>Odoo Customization:</strong> Our customization services ensure that the Odoo platform is tailored to fit your unique business needs. From modifying existing modules to developing new functionalities, we provide solutions that enhance the efficiency of your operations.</li>
-            <li><strong>Tailor-Made Solutions:</strong> At Doodex, we understand that one size does not fit all. Our tailor-made solutions are designed to address the specific challenges faced by your business. We offer bespoke development services that create a perfect match between Odoo’s capabilities and your business requirements.</li>
-            <li><strong>Python Development:</strong> Our team of skilled Python developers brings extensive experience in developing robust and scalable applications. Whether you need a custom module, a complex integration, or a standalone application, we leverage the power of Python to deliver high-quality solutions.</li>
-            <li><strong>Integration Services:</strong> We help you integrate Odoo with other systems and applications to ensure seamless data flow and unified operations. Our integration services cover a wide range of systems including CRM, ERP, eCommerce platforms, and more.</li>
-            <li><strong>Odoo Implementation:</strong> We offer end-to-end Odoo implementation services, guiding you through the entire process from initial consultation to final deployment. Our structured approach ensures a smooth transition and rapid adoption of the new system.</li>
-            <li><strong>Support and Maintenance:</strong> Our commitment to your success doesn’t end with implementation. We provide ongoing support and maintenance services to ensure that your Odoo system runs smoothly and efficiently, allowing you to focus on your core business activities.</li>
-        </ul>
-        <h3 style="font-weight: 700;">Why Choose Doodex?</h3>
-        <ul>
-            <li><strong>Expertise in Odoo:</strong> Our team has a deep understanding of the Odoo platform and its various modules, enabling us to deliver solutions that are both effective and efficient.</li>
-            <li><strong>Customized Solutions:</strong> We believe in providing solutions that are tailored to your specific needs, ensuring maximum ROI.</li>
-            <li><strong>Proven Track Record:</strong> We have successfully implemented Odoo solutions for a wide range of businesses across different industries.</li>
-            <li><strong>Commitment to Quality:</strong> Our focus on quality ensures that every solution we deliver meets the highest standards of excellence.</li>
-            <li><strong>Comprehensive Support:</strong> We offer continuous support and maintenance services to keep your system up-to-date and running smoothly.</li>
-        </ul>
-        <h3 style="font-weight: 700;">Get in Touch</h3>
-        <p>If you are looking for a partner who can provide customized Odoo solutions tailored to your business needs, look no further than Doodex. Visit our website at <a href="https://www.doodex.net/" style="color: #ebac55;">www.doodex.net</a> to learn more about our services and how we can help you achieve your business objectives.</p>
-        <p>Get a free audit <a href="https://www.doodex.net/en/contactus" style="color: #ebac55;">here</a>.</p>
-    </section>
-
-    <section id="contact" class="contact-section" style="background-color: #f4f4f4; padding: 40px 20px; text-align: center;">
-        <h2 style="font-weight: 700;">Contact Us</h2>
-        <p>If you have any questions or need further information, feel free to reach out to us.</p>
-        <a href="mailto:nisrinamirandaa@doodex.net" class="btn btn-primary" style="background-color: #ebac55; color: #fff; border: none; padding: 10px 20px; text-decoration: none;">Email Us</a>
-    </section>
+<!-- ====================================================== 01 header (not sticky) -->
+<div class="peuhead" style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; padding: 12px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 18px"><a href="#peu-overview" style="text-decoration: none; color: #270140; display: inline-block"><img src="./assets/peu-logo.png" alt="Personal Email Usage module icon" width="34" height="34" style="max-width: none; min-width: 34px; width: 34px; height: 34px; border-radius: 8px; display: inline-block; vertical-align: middle; margin-right: 11px"><span style="font-size: 16px; font-weight: 800; color: #270140; letter-spacing: -0.015em; white-space: nowrap; vertical-align: middle">Personal Email Usage</span></a></td>
+         <td style="vertical-align: middle; text-align: center"><nav class="jumpwrap" style="display: inline-block; background-color: #ffffff; border: 1px solid #ece4f3; border-radius: 9999px; padding: 4px"><span class="jump" style="display: inline-block"><a href="#peu-overview" style="text-decoration: none; color: #171717; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 9999px; white-space: nowrap; display: inline-block; margin: 1px">Overview</a><a href="#peu-usecases" style="text-decoration: none; color: #171717; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 9999px; white-space: nowrap; display: inline-block; margin: 1px">Use Cases</a><a href="#peu-features" style="text-decoration: none; color: #171717; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 9999px; white-space: nowrap; display: inline-block; margin: 1px">Features</a><a href="#peu-why" style="text-decoration: none; color: #171717; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 9999px; white-space: nowrap; display: inline-block; margin: 1px">Why This</a><a href="#peu-pricing" style="text-decoration: none; color: #171717; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 9999px; white-space: nowrap; display: inline-block; margin: 1px">Price</a><a href="#peu-faqs" style="text-decoration: none; color: #171717; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 9999px; white-space: nowrap; display: inline-block; margin: 1px">FAQ</a><a href="#peu-releases" style="text-decoration: none; color: #171717; font-size: 13.5px; font-weight: 600; padding: 7px 13px; border-radius: 9999px; white-space: nowrap; display: inline-block; margin: 1px">Releases</a></span></nav></td>
+         <td style="vertical-align: middle; text-align: right; width: 1px; white-space: nowrap; padding-left: 18px"><a class="pbtn" href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: inline-block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 13.5px; text-decoration: none; padding: 10px 18px; border-radius: 10px; line-height: 1.2">Talk to Doodex</a></td>
+      </tr></tbody></table>
+   </div>
 </div>
 
-<footer style="background-color: #ebac55; color: #fff; text-align: center; padding: 20px;">
-    <div class="logos" style="margin-bottom: 10px;">
-        <img src="./assets/doodex_odoo.png" alt="Company Logo" style="max-height: 80px;">
-    </div>
-    <p style="margin: 0;">&copy; 2024 Doodex. All rights reserved.</p>
-</footer>
+<!-- ============================================================== 02 trust bar -->
+<div style="padding: 32px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0; text-align: center">
+      <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 4px"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>Odoo Official Partner</span>
+      <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 4px"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>Odoo 19.0</span>
+      <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 4px"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>Free &middot; LGPL-3</span>
+      <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 4px"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>No subscription, no activation key</span>
+      <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 4px"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>Depends only on <b>base</b> and <b>mail</b></span>
+   </div>
+</div>
 
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<!-- ================================================================== 03 hero -->
+<div style="padding: 8px 24px 0">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <div style="background-color: #270140; border-radius: 20px; padding: 52px 44px 46px">
+         <p style="margin: 0 0 12px; display: inline-block; font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #fa7268">
+            Incoming mail control for Odoo 19
+         </p>
+         <p style="color: #ad9eb6; font-size: 15px; max-width: 660px; margin: 0 0 6px; line-height: 1.6">
+            Every newsletter, every cold pitch and every message your own staff
+            send lands in Odoo &mdash; and each unknown sender quietly becomes a
+            brand-new contact.
+         </p>
+         <h1 style="color: #ffffff; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(32px, 4.4vw, 46px); line-height: 1.1">
+            Only people you already know<br><span style="color: #fa7268">get into your Odoo.</span>
+         </h1>
+         <p style="color: #d4ccd9; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; max-width: 660px; margin: 16px 0 0">
+            Personal Email Usage puts three filters on your incoming IMAP mail
+            server: skip messages from your own users, skip messages from
+            senders who are not in Contacts, and never let an email create a
+            contact record on its own. Everything else keeps working exactly as
+            Odoo built it.
+         </p>
+         <div style="margin-top: 26px">
+            <a class="pbtn" href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: inline-block; background-color: #fa7268; color: #ffffff; font-weight: 700; font-size: 15px; text-decoration: none; padding: 13px 24px; border-radius: 10px; line-height: 1.2; margin: 0 12px 12px 0">Ask us anything</a><a class="pbtn" href="#peu-why" style="display: inline-block; background-color: #270140; color: #ffffff; border-width: 1.5px; border-style: solid; border-color: #887396; font-weight: 700; font-size: 15px; text-decoration: none; padding: 13px 24px; border-radius: 10px; line-height: 1.2; margin: 0 12px 12px 0">See what it prevents</a><a class="pbtn" href="#peu-features" style="display: inline-block; background-color: #270140; color: #ffffff; border-width: 1.5px; border-style: solid; border-color: #887396; font-weight: 700; font-size: 15px; text-decoration: none; padding: 13px 24px; border-radius: 10px; line-height: 1.2; margin: 0 12px 12px 0">See the 12 behaviours</a>
+         </div>
+         <p style="color: #8f7b9c; font-size: 12.5px; margin: 16px 0 0">
+            Free under LGPL-3 &middot; install from Apps, tick one box, done
+            &middot; odoo@doodex.net
+         </p>
+      </div>
+   </div>
+</div>
 
-</body>
-</html>
+<!-- ========================================================== 04 hero visual -->
+<div style="padding: 82px 24px 56px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <figure style="margin: 0">
+         <div style="border-radius: 14px; border-width: 1px; border-style: solid; border-color: #ece4f3; background-color: #faf7fc">
+            <img src="./assets/hero-inbox-filter.gif" alt="Screen recording of Odoo: the Incoming Mail Servers list, an IMAP server form, the Mark Emails as Read field on the Advanced tab being ticked, and an email from a saved contact shown in that contact's chatter." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px">
+         </div>
+         <figcaption style="font-size: 12.5px; color: #737373; margin-top: 10px; text-align: center">
+            Recorded on a live Odoo database: where the setting lives, what
+            it does, and what a known contact&rsquo;s email looks like once it
+            lands.
+         </figcaption>
+      </figure>
+   </div>
+</div>
+
+<!-- =============================================================== 05 overview -->
+<div id="peu-overview" style="padding: 56px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 12px; font-weight: 800; color: #e85c52; letter-spacing: 0.06em; margin-right: 14px">01</span><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">Overview</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22; max-width: 760px">
+         Odoo fetches everything. This module decides what deserves to come in.
+      </h2>
+      <p style="margin: 14px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 760px">
+         Odoo&rsquo;s own incoming mail server does one job well: it pulls
+         messages in and routes them. It does not ask who sent them. Personal
+         Email Usage adds that question &mdash; and answers it before the
+         message ever becomes a record.
+      </p>
+
+      <!-- before / after -->
+      <div style="margin-top: 26px; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+         <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+            <td style="vertical-align: top; background-color: #faf7fc; border-radius: 14px 0 0 14px">
+               <div style="padding: 24px 26px">
+                  <p style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; margin: 0 0 14px; color: #dc2626">Standard Odoo incoming mail</p>
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; width: 22px; color: #dc2626; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10007;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #737373; padding: 6px 0">An email from an address nobody knows can create a fresh contact record.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #dc2626; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10007;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #737373; padding: 6px 0">Messages your own staff send get processed like customer mail.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #dc2626; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10007;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #737373; padding: 6px 0">Newsletters and cold outreach get routed into your database.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #dc2626; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10007;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #737373; padding: 6px 0">You have no say over whether the message stays unread in the mailbox.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #dc2626; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10007;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #737373; padding: 6px 0">Cleaning up the contact list afterwards is a manual job, every week.</td></tr>
+                  </tbody></table>
+               </div>
+            </td>
+            <td style="vertical-align: top; background-color: #fff5f2; border-left-width: 1px; border-left-style: solid; border-left-color: #ece4f3; border-radius: 0 14px 14px 0">
+               <div style="padding: 24px 26px">
+                  <p style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; margin: 0 0 14px; color: #16a34a">With Personal Email Usage</p>
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; width: 22px; color: #16a34a; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #270140; font-weight: 500; padding: 6px 0">An unknown sender is skipped. No contact is created, ever.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #16a34a; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #270140; font-weight: 500; padding: 6px 0">Mail from your internal users is recognised and skipped.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #16a34a; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #270140; font-weight: 500; padding: 6px 0">Only senders already saved in Contacts get through.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #16a34a; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #270140; font-weight: 500; padding: 6px 0">One checkbox decides whether fetched mail is marked read on the server.</td></tr>
+                     <tr><td style="vertical-align: top; width: 22px; color: #16a34a; font-weight: 800; font-size: 14.5px; line-height: 1.5; padding: 6px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; line-height: 1.5; color: #270140; font-weight: 500; padding: 6px 0">The contact list stays the size you made it.</td></tr>
+                  </tbody></table>
+               </div>
+            </td>
+         </tr></tbody></table>
+      </div>
+
+      <!-- stat row -->
+      <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: collapse; border-spacing: 0px 0px; margin-top: 24px; text-align: center"><tbody><tr>
+         <td style="vertical-align: top; padding: 18px 12px"><div style="font-size: 32px; font-weight: 800; color: #270140; letter-spacing: -0.02em; line-height: 1.2">3</div><div style="font-size: 12.5px; color: #737373; line-height: 1.45">filters on every incoming message</div></td>
+         <td style="vertical-align: top; padding: 18px 12px; border-left-width: 1px; border-left-style: solid; border-left-color: #ece4f3"><div style="font-size: 32px; font-weight: 800; color: #270140; letter-spacing: -0.02em; line-height: 1.2">1</div><div style="font-size: 12.5px; color: #737373; line-height: 1.45">checkbox to configure</div></td>
+         <td style="vertical-align: top; padding: 18px 12px; border-left-width: 1px; border-left-style: solid; border-left-color: #ece4f3"><div style="font-size: 32px; font-weight: 800; color: #270140; letter-spacing: -0.02em; line-height: 1.2">0</div><div style="font-size: 12.5px; color: #737373; line-height: 1.45">contacts created by email</div></td>
+         <td style="vertical-align: top; padding: 18px 12px; border-left-width: 1px; border-left-style: solid; border-left-color: #ece4f3"><div style="font-size: 32px; font-weight: 800; color: #270140; letter-spacing: -0.02em; line-height: 1.2">2</div><div style="font-size: 12.5px; color: #737373; line-height: 1.45">dependencies: base and mail</div></td>
+      </tr></tbody></table>
+   </div>
+</div>
+
+<!-- ================================================================ 06 CTA 1/3 -->
+<div style="padding: 32px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <div style="background-color: #270140; border-radius: 20px; padding: 28px 28px 22px">
+         <div style="max-width: 660px">
+            <p style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #fa7268; margin: 0 0 8px">Before you install</p>
+            <h2 style="color: #ffffff; letter-spacing: -0.015em; font-weight: 800; font-size: clamp(21px, 2.4vw, 24px); line-height: 1.25; margin: 0 0 8px">Ask whether it fits your mail setup</h2>
+            <p style="color: #c7bdcd; font-size: 14.5px; line-height: 1.55; margin: 0">
+               Tell us which mailbox you fetch, what it receives and what you
+               want filtered. We will tell you straight whether this module
+               covers it &mdash; and if it does not, what would.
+            </p>
+         </div>
+         <div style="margin: 8px -14px -14px">
+            <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 14px 14px; height: 1px"><tbody><tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #fa7268">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">1</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #fa7268; color: #ffffff; padding: 4px 9px; border-radius: 9999px">30 minutes</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">Book a call</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">Screen-share your mail server setup with a Doodex consultant.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <span style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center"><img src="./assets/qr-meeting.png" alt="QR code for the Doodex meeting booking page" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></span>
+                        <span style="display: block; background-color: #fa7268; color: #ffffff; font-weight: 700; font-size: 13px; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">hub.doodex.net/r/meeting</span>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #ffffff">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">2</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #f4eef8; color: #270140; padding: 4px 9px; border-radius: 9999px">Written reply</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">Email us</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">Send the question in writing and get an answer in writing.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <a href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center; text-decoration: none"><img src="./assets/qr-contact.png" alt="QR code for the Doodex contact page" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></a>
+                        <a class="pbtn" href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 13px; text-decoration: none; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">odoo@doodex.net</a>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #ffffff">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">3</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #f4eef8; color: #270140; padding: 4px 9px; border-radius: 9999px">Fastest reply</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">WhatsApp</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">Reach the team directly from the code below.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <span style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center"><img src="./assets/qr-whatsapp.png" alt="QR code for the Doodex WhatsApp channel" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></span>
+                        <span style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 13px; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">hub.doodex.net/r/whatsapp</span>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+            </tr></tbody></table>
+         </div>
+         <p style="color: #93809f; font-size: 12px; margin: 16px 0 0">
+            Scan a code with your phone camera. The address under each code is
+            the same one the code contains, written out so you can type it by
+            hand.
+         </p>
+      </div>
+   </div>
+</div>
+
+<!-- ============================================================== 07 use cases -->
+<div id="peu-usecases" style="background-color: #faf7fc; border-top: 1px solid #ece4f3; border-bottom: 1px solid #ece4f3; padding: 56px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 12px; font-weight: 800; color: #e85c52; letter-spacing: 0.06em; margin-right: 14px">02</span><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">Use Cases</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">Six mailboxes this was built for</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 760px">
+         If a shared mailbox feeds your Odoo database, one of these is already
+         your problem. Each one is fixed by the same three filters.
+      </p>
+
+      <div style="margin: 22px -48px 0">
+         <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 48px 0px"><tbody>
+            <tr>
+               <td style="vertical-align: top; padding: 24px 0 0; border-top: 1px solid #ece4f3">
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                     <td style="vertical-align: top; width: 56px; padding-right: 16px"><span style="display: inline-block; width: 56px; height: 56px; border-radius: 10px; background-color: #f4eef8; text-align: center"><img src="./assets/ic-uc-01-inbox.png" alt="" width="132" height="132" style="max-width: none; min-width: 34px; width: 34px; height: 34px; display: block; margin: 11px auto"></span></td>
+                     <td style="vertical-align: top">
+                        <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 2px 0 6px">Shared sales inbox</h3>
+                        <p style="font-size: 13.5px; color: #737373; margin: 0 0 8px; line-height: 1.6">Your sales@ address takes customer replies, supplier pitches and internal forwards in one stream. Only the replies belong in Odoo.</p>
+                        <p style="font-size: 13.5px; font-weight: 700; color: #270140; margin: 0 0 10px; line-height: 1.5"><span style="display: inline-block; width: 7px; height: 7px; background-color: #fa7268; border-radius: 2px; margin-right: 9px; vertical-align: middle"></span>Your CRM fills with buyers, not noise.</p>
+                        <a class="mini" href="#peu-features" style="font-size: 12.5px; font-weight: 700; color: #e85c52; text-decoration: none">How the sender filter works &rarr;</a>
+                     </td>
+                  </tr></tbody></table>
+               </td>
+               <td style="vertical-align: top; padding: 24px 0 0; border-top: 1px solid #ece4f3">
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                     <td style="vertical-align: top; width: 56px; padding-right: 16px"><span style="display: inline-block; width: 56px; height: 56px; border-radius: 10px; background-color: #f4eef8; text-align: center"><img src="./assets/ic-uc-02-support.png" alt="" width="132" height="132" style="max-width: none; min-width: 34px; width: 34px; height: 34px; display: block; margin: 11px auto"></span></td>
+                     <td style="vertical-align: top">
+                        <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 2px 0 6px">Support inbox</h3>
+                        <p style="font-size: 13.5px; color: #737373; margin: 0 0 8px; line-height: 1.6">Every mailing list on earth has found your support address. Stop them at the door instead of closing them one by one.</p>
+                        <p style="font-size: 13.5px; font-weight: 700; color: #270140; margin: 0 0 10px; line-height: 1.5"><span style="display: inline-block; width: 7px; height: 7px; background-color: #fa7268; border-radius: 2px; margin-right: 9px; vertical-align: middle"></span>No ticket you never asked for.</p>
+                        <a class="mini" href="#peu-features" style="font-size: 12.5px; font-weight: 700; color: #e85c52; text-decoration: none">See the unknown-sender filter &rarr;</a>
+                     </td>
+                  </tr></tbody></table>
+               </td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; padding: 24px 0 0; border-top: 1px solid #ece4f3">
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                     <td style="vertical-align: top; width: 56px; padding-right: 16px"><span style="display: inline-block; width: 56px; height: 56px; border-radius: 10px; background-color: #f4eef8; text-align: center"><img src="./assets/ic-uc-03-contacts.png" alt="" width="132" height="132" style="max-width: none; min-width: 34px; width: 34px; height: 34px; display: block; margin: 11px auto"></span></td>
+                     <td style="vertical-align: top">
+                        <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 2px 0 6px">A contact list you can trust</h3>
+                        <p style="font-size: 13.5px; color: #737373; margin: 0 0 8px; line-height: 1.6">If Contacts has grown by hundreds of half-empty records nobody created, incoming email made them. That ends the day you install this.</p>
+                        <p style="font-size: 13.5px; font-weight: 700; color: #270140; margin: 0 0 10px; line-height: 1.5"><span style="display: inline-block; width: 7px; height: 7px; background-color: #fa7268; border-radius: 2px; margin-right: 9px; vertical-align: middle"></span>Your contact count moves only when you move it.</p>
+                        <a class="mini" href="#peu-why" style="font-size: 12.5px; font-weight: 700; color: #e85c52; text-decoration: none">Why Odoo does that &rarr;</a>
+                     </td>
+                  </tr></tbody></table>
+               </td>
+               <td style="vertical-align: top; padding: 24px 0 0; border-top: 1px solid #ece4f3">
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                     <td style="vertical-align: top; width: 56px; padding-right: 16px"><span style="display: inline-block; width: 56px; height: 56px; border-radius: 10px; background-color: #f4eef8; text-align: center"><img src="./assets/ic-uc-04-threads.png" alt="" width="132" height="132" style="max-width: none; min-width: 34px; width: 34px; height: 34px; display: block; margin: 11px auto"></span></td>
+                     <td style="vertical-align: top">
+                        <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 2px 0 6px">Cleaner customer threads</h3>
+                        <p style="font-size: 13.5px; color: #737373; margin: 0 0 8px; line-height: 1.6">Internal forwards stop landing in the middle of a customer conversation, so what your team reads is what the customer wrote.</p>
+                        <p style="font-size: 13.5px; font-weight: 700; color: #270140; margin: 0 0 10px; line-height: 1.5"><span style="display: inline-block; width: 7px; height: 7px; background-color: #fa7268; border-radius: 2px; margin-right: 9px; vertical-align: middle"></span>No scrolling past your own colleagues.</p>
+                        <a class="mini" href="#peu-features" style="font-size: 12.5px; font-weight: 700; color: #e85c52; text-decoration: none">See the internal-user filter &rarr;</a>
+                     </td>
+                  </tr></tbody></table>
+               </td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; padding: 24px 0 0; border-top: 1px solid #ece4f3">
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                     <td style="vertical-align: top; width: 56px; padding-right: 16px"><span style="display: inline-block; width: 56px; height: 56px; border-radius: 10px; background-color: #f4eef8; text-align: center"><img src="./assets/ic-uc-05-watch.png" alt="" width="132" height="132" style="max-width: none; min-width: 34px; width: 34px; height: 34px; display: block; margin: 11px auto"></span></td>
+                     <td style="vertical-align: top">
+                        <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 2px 0 6px">A mailbox people still watch</h3>
+                        <p style="font-size: 13.5px; color: #737373; margin: 0 0 8px; line-height: 1.6">Your team keeps the inbox open in Outlook or Gmail. Leave fetched mail unread there so anyone can see what has not been handled.</p>
+                        <p style="font-size: 13.5px; font-weight: 700; color: #270140; margin: 0 0 10px; line-height: 1.5"><span style="display: inline-block; width: 7px; height: 7px; background-color: #fa7268; border-radius: 2px; margin-right: 9px; vertical-align: middle"></span>Odoo and your inbox tell the same story.</p>
+                        <a class="mini" href="#peu-features" style="font-size: 12.5px; font-weight: 700; color: #e85c52; text-decoration: none">The read-status switch &rarr;</a>
+                     </td>
+                  </tr></tbody></table>
+               </td>
+               <td style="vertical-align: top; padding: 24px 0 0; border-top: 1px solid #ece4f3">
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                     <td style="vertical-align: top; width: 56px; padding-right: 16px"><span style="display: inline-block; width: 56px; height: 56px; border-radius: 10px; background-color: #f4eef8; text-align: center"><img src="./assets/ic-uc-06-company.png" alt="" width="132" height="132" style="max-width: none; min-width: 34px; width: 34px; height: 34px; display: block; margin: 11px auto"></span></td>
+                     <td style="vertical-align: top">
+                        <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 2px 0 6px">One mailbox per company</h3>
+                        <p style="font-size: 13.5px; color: #737373; margin: 0 0 8px; line-height: 1.6">The setting lives on each incoming mail server, so two companies sharing one database can behave completely differently.</p>
+                        <p style="font-size: 13.5px; font-weight: 700; color: #270140; margin: 0 0 10px; line-height: 1.5"><span style="display: inline-block; width: 7px; height: 7px; background-color: #fa7268; border-radius: 2px; margin-right: 9px; vertical-align: middle"></span>One rule per brand, no compromise.</p>
+                        <a class="mini" href="#peu-faqs" style="font-size: 12.5px; font-weight: 700; color: #e85c52; text-decoration: none">Multi-company answers &rarr;</a>
+                     </td>
+                  </tr></tbody></table>
+               </td>
+            </tr>
+         </tbody></table>
+      </div>
+   </div>
+</div>
+
+<!-- =============================================================== 08 features -->
+<div id="peu-features" style="padding: 56px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 12px; font-weight: 800; color: #e85c52; letter-spacing: 0.06em; margin-right: 14px">03</span><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">Features</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">Twelve things it does, stated plainly</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 760px">
+         No hidden behaviour. Everything on this list is visible either on the
+         mail server form or in the Odoo server log.
+      </p>
+
+      <div style="margin: 0 -28px -28px">
+         <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 28px 28px; height: 1px"><tbody>
+            <tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-01-mark-read-toggle.png" alt="The Mark Emails as Read checkbox ticked on the Advanced tab of an Odoo incoming mail server, directly under Keep Attachments." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">01</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">A read-status switch you control</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">A new <b>Mark Emails as Read</b> checkbox appears on the incoming mail server form, right under Keep Attachments. Tick it and fetched mail is marked read on your mail server.</p>
+                  </div>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-02-keep-unread.png" alt="The Mark Emails as Read checkbox left unticked on the Advanced tab of an Odoo incoming mail server, so fetched messages stay unread on the server." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">02</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Or leave it unread for your team</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">Leave the box unticked and messages stay unread in the mailbox after Odoo reads them &mdash; so anyone watching the inbox in Outlook or Gmail still sees what has come in.</p>
+                  </div>
+               </td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-03-skip-internal-user.png" alt="An Odoo internal user record showing the Email Address used as the login. Incoming senders are matched against these before anything is routed." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">03</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Mail from your own staff is skipped</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">Every sender is checked against your internal users first. If the address belongs to one of them, the message is skipped and never routed. Portal and public users are not treated as staff.</p>
+                  </div>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-04-skip-unknown-sender.png" alt="The Odoo Contacts list with the Email column highlighted. Only addresses saved here get through the filter." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">04</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Mail from strangers is skipped</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">Your Contacts list is the allowlist. If the sender is not saved there, the message is skipped &mdash; newsletters, cold outreach and one-off senders stop at the door instead of becoming records.</p>
+                  </div>
+               </td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-05-contact-chatter.png" alt="An email from a saved contact appearing in that contact's chatter in Odoo." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">05</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Known contacts land in their own chatter</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">Mail from a saved contact goes through Odoo&rsquo;s normal routing, so it appears in that contact&rsquo;s chatter and builds the full history in one place.</p>
+                  </div>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-06-no-ghost-contacts.png" alt="The Odoo Contacts list showing a record count of 1-43 / 43. Incoming email never adds to this number." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">06</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">No contact is ever created by email</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">When a mail alias points at Contacts, an existing contact is matched and reused. An unrecognised address creates nothing at all. Your contact count only changes when a person changes it.</p>
+                  </div>
+               </td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-07-message-id-dedup.png" alt="The Processed Message IDs field definition in Odoo: a stored text field on the Incoming Mail Server model, described as Store processed message IDs to prevent duplicates." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">07</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Each message is processed once</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">Every message that gets through is recorded by its Message-ID, so a later fetch will not thread the same email twice &mdash; even when it is still marked unread on the server.</p>
+                  </div>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-08-imap-only.png" alt="The Server Type options on an Odoo incoming mail server: IMAP Server, POP Server, Local Server and Gmail OAuth. Only IMAP is affected by this module." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">08</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">IMAP only &mdash; POP3 is untouched</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">The filters apply to IMAP servers. Any POP3 or other server type on the same database keeps Odoo&rsquo;s original behaviour, exactly as shipped.</p>
+                  </div>
+               </td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-09-fetch-log.png" alt="The standard Mail: Fetchmail Service scheduled action in Odoo, set to run every 5 minutes on the Incoming Mail Server model." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">09</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">It runs on Odoo&rsquo;s own schedule</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">The filters hook into the standard <b>Mail: Fetchmail Service</b> action, so fetching keeps whatever interval you already set. Each cycle writes a summary to the Odoo log: fetched, failed, skipped.</p>
+                  </div>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-10-manual-fetch.png" alt="The Run Manually button on the Mail: Fetchmail Service scheduled action in Odoo, which triggers a fetch on demand." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">10</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Test it without waiting</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">Open <b>Mail: Fetchmail Service</b> and press <b>Run Manually</b> to trigger a fetch on the spot, then read the summary in the log. You know in seconds whether the filter behaves as you expected.</p>
+                  </div>
+               </td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-11-alias-partner.png" alt="An Odoo mail alias whose Aliased Model is Journal Entry. Aliases pointed at models other than Contacts are untouched by this module." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">11</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Aliases stop inventing partners</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">Aliases that target any other model &mdash; leads, tasks, tickets &mdash; behave exactly as Odoo intends. Only the Contacts model is protected from automatic creation.</p>
+                  </div>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+                  <div style="background-color: #faf7fc; border-bottom: 1px solid #ece4f3; border-radius: 14px 14px 0 0"><img src="./assets/feat-12-install-clean.png" alt="The Personal Email Usage module installed and listed under LGPL Version 3, by Doodex, with only Upgrade and Uninstall as actions." style="max-width: 100%; display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0"></div>
+                  <div style="padding: 18px 20px 20px">
+                     <p style="display: block; font-size: 11px; font-weight: 800; color: #e85c52; letter-spacing: 0.08em; margin: 0 0 6px">12</p>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16px; margin: 0 0 6px">Install it and it is already working</h3>
+                     <p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.55">No wizard, no setup screen, no key. Install from Apps and the filters are live on your IMAP servers from the next fetch. Uninstall and Odoo returns to standard behaviour.</p>
+                  </div>
+               </td>
+            </tr>
+         </tbody></table>
+      </div>
+
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 56px 0 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">What you will not find in it</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 760px">
+         Being clear about the edges is part of being accurate.
+      </p>
+      <div style="margin: 20px -44px 0">
+         <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 44px 0px"><tbody>
+            <tr>
+               <td style="vertical-align: top; border-top: 1px solid #ece4f3; padding: 15px 0"><table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr><td style="vertical-align: top; width: 26px; padding-top: 7px"><span style="display: inline-block; width: 9px; height: 9px; background-color: #fa7268; border-radius: 2px"></span></td><td style="vertical-align: top"><h4 style="font-size: 14.5px; color: #171717; margin: 0 0 3px; font-weight: 700; letter-spacing: -0.015em">It does not touch outgoing email</h4><p style="margin: 0; font-size: 12.5px; color: #737373; line-height: 1.55">Nothing about the composer, mail templates or your outgoing mail server changes. This module is incoming only.</p></td></tr></tbody></table></td>
+               <td style="vertical-align: top; border-top: 1px solid #ece4f3; padding: 15px 0"><table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr><td style="vertical-align: top; width: 26px; padding-top: 7px"><span style="display: inline-block; width: 9px; height: 9px; background-color: #fa7268; border-radius: 2px"></span></td><td style="vertical-align: top"><h4 style="font-size: 14.5px; color: #171717; margin: 0 0 3px; font-weight: 700; letter-spacing: -0.015em">It is not an anti-spam engine</h4><p style="margin: 0; font-size: 12.5px; color: #737373; line-height: 1.55">There is no scoring, no blocklist and no content analysis. The rule is simply: are you in Contacts or not.</p></td></tr></tbody></table></td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; border-top: 1px solid #ece4f3; padding: 15px 0"><table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr><td style="vertical-align: top; width: 26px; padding-top: 7px"><span style="display: inline-block; width: 9px; height: 9px; background-color: #fa7268; border-radius: 2px"></span></td><td style="vertical-align: top"><h4 style="font-size: 14.5px; color: #171717; margin: 0 0 3px; font-weight: 700; letter-spacing: -0.015em">It does not read or store message bodies</h4><p style="margin: 0; font-size: 12.5px; color: #737373; line-height: 1.55">Skipped messages are never processed into Odoo. Nothing is sent anywhere outside your own database and your own mail server.</p></td></tr></tbody></table></td>
+               <td style="vertical-align: top; border-top: 1px solid #ece4f3; padding: 15px 0"><table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr><td style="vertical-align: top; width: 26px; padding-top: 7px"><span style="display: inline-block; width: 9px; height: 9px; background-color: #fa7268; border-radius: 2px"></span></td><td style="vertical-align: top"><h4 style="font-size: 14.5px; color: #171717; margin: 0 0 3px; font-weight: 700; letter-spacing: -0.015em">It adds no menu and no new screen</h4><p style="margin: 0; font-size: 12.5px; color: #737373; line-height: 1.55">One checkbox on a form you already use. There is nothing new to learn and nothing new to train your team on.</p></td></tr></tbody></table></td>
+            </tr>
+            <tr>
+               <td style="vertical-align: top; border-top: 1px solid #ece4f3; padding: 15px 0"><table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr><td style="vertical-align: top; width: 26px; padding-top: 7px"><span style="display: inline-block; width: 9px; height: 9px; background-color: #fa7268; border-radius: 2px"></span></td><td style="vertical-align: top"><h4 style="font-size: 14.5px; color: #171717; margin: 0 0 3px; font-weight: 700; letter-spacing: -0.015em">It does not change POP3 servers</h4><p style="margin: 0; font-size: 12.5px; color: #737373; line-height: 1.55">If your server type is not IMAP, this module leaves it entirely alone.</p></td></tr></tbody></table></td>
+               <td style="vertical-align: top; border-top: 1px solid #ece4f3; padding: 15px 0"><table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr><td style="vertical-align: top; width: 26px; padding-top: 7px"><span style="display: inline-block; width: 9px; height: 9px; background-color: #fa7268; border-radius: 2px"></span></td><td style="vertical-align: top"><h4 style="font-size: 14.5px; color: #171717; margin: 0 0 3px; font-weight: 700; letter-spacing: -0.015em">It has no external service</h4><p style="margin: 0; font-size: 12.5px; color: #737373; line-height: 1.55">No API call leaves your server. No account to create, no key to renew, no vendor to depend on.</p></td></tr></tbody></table></td>
+            </tr>
+         </tbody></table>
+      </div>
+   </div>
+</div>
+
+<!-- ============================================================== 09 interlude -->
+<div style="padding: 32px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <div style="background-color: #270140; border-radius: 20px; padding: 44px 40px; text-align: center">
+         <p style="font-size: clamp(23px, 3vw, 32px); font-weight: 800; color: #ffffff; letter-spacing: -0.02em; line-height: 1.25; margin: 0">
+            Your contact list should grow because<br>
+            <span style="color: #fa7268">you decided it should.</span>
+         </p>
+         <p style="color: #cfc7d5; margin: 12px 0 0; font-size: 15px">
+            Not because a mailing list found your support address on a Tuesday.
+         </p>
+      </div>
+   </div>
+</div>
+
+<!-- ==================================================================== 10 why -->
+<div id="peu-why" style="padding: 56px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 12px; font-weight: 800; color: #e85c52; letter-spacing: 0.06em; margin-right: 14px">04</span><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">Why This</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22; max-width: 800px">One unfiltered email is never just one email.</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 800px">
+         It is the first link in a chain that ends with somebody on your team
+         cleaning up by hand. Here is how a single message from a stranger turns
+         into work.
+      </p>
+
+      <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: collapse; border-spacing: 0px 0px; margin-top: 34px"><tbody><tr>
+         <td style="vertical-align: top; text-align: center; padding: 0">
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 14px"><tbody><tr><td style="vertical-align: middle"></td><td style="vertical-align: middle; width: 58px"><span style="display: inline-block; width: 54px; height: 54px; border-radius: 9999px; background-color: #ffffff; border-width: 2px; border-style: solid; border-color: #fa7268; text-align: center"><img src="./assets/ic-why-1-stranger.png" alt="" width="132" height="132" style="max-width: none; min-width: 30px; width: 30px; height: 30px; display: block; margin: 12px auto"></span></td><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-right: -3px"></span></td></tr></tbody></table>
+            <div style="padding: 0 12px">
+            <span style="display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; color: #e85c52; margin-bottom: 5px">STEP 1</span>
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 14.5px; margin: 0 0 6px">A stranger writes in</h3>
+            <p style="font-size: 12.5px; color: #737373; margin: 0; line-height: 1.55">A newsletter, a bot, a cold pitch. It reaches your shared mailbox like any other message.</p>
+            <span style="display: inline-block; margin-top: 9px; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #fa7268; color: #ffffff; padding: 4px 10px; border-radius: 9999px">Blocked here</span></div>
+         </td>
+         <td style="vertical-align: top; text-align: center; padding: 0">
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 14px"><tbody><tr><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-left: -3px"></span></td><td style="vertical-align: middle; width: 58px"><span style="display: inline-block; width: 54px; height: 54px; border-radius: 9999px; background-color: #ffffff; border-width: 2px; border-style: solid; border-color: #ece4f3; text-align: center"><img src="./assets/ic-why-2-ghost.png" alt="" width="132" height="132" style="max-width: none; min-width: 30px; width: 30px; height: 30px; display: block; margin: 12px auto"></span></td><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-right: -3px"></span></td></tr></tbody></table>
+            <div style="padding: 0 12px">
+            <span style="display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; color: #e85c52; margin-bottom: 5px">STEP 2</span>
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 14.5px; margin: 0 0 6px">Odoo saves them</h3>
+            <p style="font-size: 12.5px; color: #737373; margin: 0; line-height: 1.55">With an alias on Contacts, Odoo creates a record so it has somewhere to file the message.</p></div>
+         </td>
+         <td style="vertical-align: top; text-align: center; padding: 0">
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 14px"><tbody><tr><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-left: -3px"></span></td><td style="vertical-align: middle; width: 58px"><span style="display: inline-block; width: 54px; height: 54px; border-radius: 9999px; background-color: #ffffff; border-width: 2px; border-style: solid; border-color: #ece4f3; text-align: center"><img src="./assets/ic-why-3-spread.png" alt="" width="132" height="132" style="max-width: none; min-width: 30px; width: 30px; height: 30px; display: block; margin: 12px auto"></span></td><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-right: -3px"></span></td></tr></tbody></table>
+            <div style="padding: 0 12px">
+            <span style="display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; color: #e85c52; margin-bottom: 5px">STEP 3</span>
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 14.5px; margin: 0 0 6px">It spreads</h3>
+            <p style="font-size: 12.5px; color: #737373; margin: 0; line-height: 1.55">That record now turns up in searches, filters, mailing lists and your team&rsquo;s autocomplete.</p></div>
+         </td>
+         <td style="vertical-align: top; text-align: center; padding: 0">
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 14px"><tbody><tr><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-left: -3px"></span></td><td style="vertical-align: middle; width: 58px"><span style="display: inline-block; width: 54px; height: 54px; border-radius: 9999px; background-color: #ffffff; border-width: 2px; border-style: solid; border-color: #ece4f3; text-align: center"><img src="./assets/ic-why-4-numbers.png" alt="" width="132" height="132" style="max-width: none; min-width: 30px; width: 30px; height: 30px; display: block; margin: 12px auto"></span></td><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-right: -3px"></span></td></tr></tbody></table>
+            <div style="padding: 0 12px">
+            <span style="display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; color: #e85c52; margin-bottom: 5px">STEP 4</span>
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 14.5px; margin: 0 0 6px">Your numbers drift</h3>
+            <p style="font-size: 12.5px; color: #737373; margin: 0; line-height: 1.55">Contact totals, segment sizes and campaign lists all count somebody who was never a customer.</p></div>
+         </td>
+         <td style="vertical-align: top; text-align: center; padding: 0">
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 14px"><tbody><tr><td style="vertical-align: middle"><span style="display: block; height: 2px; background-color: #ece4f3; margin-left: -3px"></span></td><td style="vertical-align: middle; width: 58px"><span style="display: inline-block; width: 54px; height: 54px; border-radius: 9999px; background-color: #ffffff; border-width: 2px; border-style: solid; border-color: #ece4f3; text-align: center"><img src="./assets/ic-why-5-cleanup.png" alt="" width="132" height="132" style="max-width: none; min-width: 30px; width: 30px; height: 30px; display: block; margin: 12px auto"></span></td><td style="vertical-align: middle"></td></tr></tbody></table>
+            <div style="padding: 0 12px">
+            <span style="display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; color: #e85c52; margin-bottom: 5px">STEP 5</span>
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 14.5px; margin: 0 0 6px">Someone deletes it</h3>
+            <p style="font-size: 12.5px; color: #737373; margin: 0; line-height: 1.55">By hand, month after month &mdash; and only after it has already skewed a list or a report.</p></div>
+         </td>
+      </tr></tbody></table>
+
+      <p style="margin-top: 30px; padding: 20px 24px; background-color: #f4eef8; border-radius: 14px; font-size: 16px; font-weight: 700; color: #270140; line-height: 1.5">
+         Personal Email Usage ends the chain at step&nbsp;1. The record is never
+         created, so <span style="color: #e85c52">there is nothing downstream to fix</span>.
+      </p>
+
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 60px 0 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22; max-width: 800px">What you get back</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 800px">
+         Three things change the first time the cron runs after you install it.
+      </p>
+
+      <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: collapse; border-spacing: 0px 0px; margin-top: 28px"><tbody><tr>
+         <td style="vertical-align: top; padding: 0 30px 0 0">
+            <img src="./assets/ic-why-g1-clean.png" alt="" width="132" height="132" style="max-width: none; min-width: 38px; width: 38px; height: 38px; display: block; margin: 0 0 16px">
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16.5px; margin: 0 0 8px">A database that stays clean by itself</h3>
+            <p style="font-size: 13.5px; color: #737373; margin: 0; line-height: 1.6">No rule list to maintain, no monthly clean-up, no import to undo. The filter reads your live contacts at every fetch, so it is right the day you add a customer and still right a year later.</p>
+         </td>
+         <td style="vertical-align: top; padding: 0 30px; border-left-width: 1px; border-left-style: solid; border-left-color: #ece4f3">
+            <img src="./assets/ic-why-g2-focus.png" alt="" width="132" height="132" style="max-width: none; min-width: 38px; width: 38px; height: 38px; display: block; margin: 0 0 16px">
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16.5px; margin: 0 0 8px">A team that only reads real messages</h3>
+            <p style="font-size: 13.5px; color: #737373; margin: 0; line-height: 1.6">Internal forwards and cold outreach never reach a thread. What your people open in Odoo is what a customer actually wrote &mdash; so nobody learns to skim past the noise.</p>
+         </td>
+         <td style="vertical-align: top; padding: 0 0 0 30px; border-left-width: 1px; border-left-style: solid; border-left-color: #ece4f3">
+            <img src="./assets/ic-why-g3-fast.png" alt="" width="132" height="132" style="max-width: none; min-width: 38px; width: 38px; height: 38px; display: block; margin: 0 0 16px">
+            <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 16.5px; margin: 0 0 8px">Two minutes, then nothing</h3>
+            <p style="font-size: 13.5px; color: #737373; margin: 0; line-height: 1.6">Install, tick one box, done. No activation key, no account, no subscription and no outside service that could break your incoming mail later on.</p>
+         </td>
+      </tr></tbody></table>
+
+      <div style="background-color: #f4eef8; border-left-width: 3px; border-left-style: solid; border-left-color: #fa7268; border-radius: 0 10px 10px 0; padding: 18px 22px; margin-top: 22px">
+         <h4 style="font-size: 14.5px; color: #270140; letter-spacing: -0.015em; margin: 0 0 6px; font-weight: 700">One honest note on settings</h4>
+         <p style="margin: 0; font-size: 13.5px; color: #525252; line-height: 1.6">Messages that are <b>skipped</b> are deliberately left untouched in your mailbox. If you leave <b>Mark Emails as Read</b> unticked, those skipped messages stay unread and will therefore be looked at again on the next fetch, and skipped again. That is harmless, and it is what keeps them visible to a human watching the inbox.</p>
+         <p style="margin: 8px 0 0; font-size: 13.5px; color: #525252; line-height: 1.6">On a busy mailbox that receives a lot of unknown senders, tick <b>Mark Emails as Read</b>. Fetched messages are then marked read on the server and each one is only examined once. We would rather tell you this here than let you discover it in a log file.</p>
+      </div>
+   </div>
+</div>
+
+<!-- ================================================================ 11 CTA 2/3 -->
+<div style="padding: 32px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <div style="background-color: #270140; border-radius: 20px; padding: 28px 28px 22px">
+         <div style="max-width: 660px">
+            <p style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #fa7268; margin: 0 0 8px">Seen the chain?</p>
+            <h2 style="color: #ffffff; letter-spacing: -0.015em; font-weight: 800; font-size: clamp(21px, 2.4vw, 24px); line-height: 1.25; margin: 0 0 8px">Tell us what your mailbox actually receives</h2>
+            <p style="color: #c7bdcd; font-size: 14.5px; line-height: 1.55; margin: 0">
+               Describe the mailbox &mdash; a shared sales address, a support
+               desk, an alias feeding CRM &mdash; and we will tell you which of
+               the three filters you need and which you do not.
+            </p>
+         </div>
+         <div style="margin: 8px -14px -14px">
+            <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 14px 14px; height: 1px"><tbody><tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #fa7268">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">1</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #fa7268; color: #ffffff; padding: 4px 9px; border-radius: 9999px">30 minutes</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">Book a call</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">Walk through your incoming mail setup with a consultant.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <span style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center"><img src="./assets/qr-meeting.png" alt="QR code for the Doodex meeting booking page" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></span>
+                        <span style="display: block; background-color: #fa7268; color: #ffffff; font-weight: 700; font-size: 13px; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">hub.doodex.net/r/meeting</span>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #ffffff">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">2</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #f4eef8; color: #270140; padding: 4px 9px; border-radius: 9999px">Written reply</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">Email us</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">A real person reads it and answers.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <a href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center; text-decoration: none"><img src="./assets/qr-contact.png" alt="QR code for the Doodex contact page" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></a>
+                        <a class="pbtn" href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 13px; text-decoration: none; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">odoo@doodex.net</a>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #ffffff">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">3</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #f4eef8; color: #270140; padding: 4px 9px; border-radius: 9999px">Fastest reply</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">WhatsApp</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">Message the team from the code below.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <span style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center"><img src="./assets/qr-whatsapp.png" alt="QR code for the Doodex WhatsApp channel" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></span>
+                        <span style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 13px; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">hub.doodex.net/r/whatsapp</span>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+            </tr></tbody></table>
+         </div>
+         <p style="color: #93809f; font-size: 12px; margin: 16px 0 0">
+            Scan a code with your phone camera, or type the address printed
+            under it.
+         </p>
+      </div>
+   </div>
+</div>
+
+<!-- ====================================================== 12 edition and price -->
+<div id="peu-pricing" style="background-color: #faf7fc; border-top: 1px solid #ece4f3; border-bottom: 1px solid #ece4f3; padding: 56px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 12px; font-weight: 800; color: #e85c52; letter-spacing: 0.06em; margin-right: 14px">05</span><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">Price</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">Free. Not free-for-now.</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 760px">
+         Published under LGPL-3. There is no paid tier of this module, no
+         activation key, no subscription and no usage limit. What you download
+         is the whole thing.
+      </p>
+
+      <div style="margin-top: 26px; border-radius: 20px; border-width: 1px; border-style: solid; border-color: #ece4f3">
+         <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+            <td style="vertical-align: top; width: 300px; background-color: #270140; border-radius: 20px 0 0 20px">
+               <div style="padding: 34px 28px">
+                  <span style="display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #fa7268; border-width: 1px; border-style: solid; border-color: #9b3f56; border-radius: 9999px; padding: 4px 12px">One edition</span>
+                  <div style="font-size: 58px; font-weight: 800; line-height: 1; margin: 18px 0 2px; color: #ffffff">Free</div>
+                  <p style="font-size: 13px; color: #c2b8c9; margin: 0">LGPL-3 &middot; Odoo 19.0 &middot; Community and Enterprise</p>
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-top: 18px"><tbody>
+                     <tr><td style="vertical-align: top; width: 20px; padding: 5px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 9999px; background-color: #fa7268"></span></td><td style="vertical-align: top; font-size: 13.5px; color: #e9e6ec; padding: 5px 0; line-height: 1.5">All three filters included</td></tr>
+                     <tr><td style="vertical-align: top; width: 20px; padding: 5px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 9999px; background-color: #fa7268"></span></td><td style="vertical-align: top; font-size: 13.5px; color: #e9e6ec; padding: 5px 0; line-height: 1.5">Read-status control included</td></tr>
+                     <tr><td style="vertical-align: top; width: 20px; padding: 5px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 9999px; background-color: #fa7268"></span></td><td style="vertical-align: top; font-size: 13.5px; color: #e9e6ec; padding: 5px 0; line-height: 1.5">Source code readable and modifiable</td></tr>
+                     <tr><td style="vertical-align: top; width: 20px; padding: 5px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 9999px; background-color: #fa7268"></span></td><td style="vertical-align: top; font-size: 13.5px; color: #e9e6ec; padding: 5px 0; line-height: 1.5">No key, no account, no phone-home</td></tr>
+                     <tr><td style="vertical-align: top; width: 20px; padding: 5px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 9999px; background-color: #fa7268"></span></td><td style="vertical-align: top; font-size: 13.5px; color: #e9e6ec; padding: 5px 0; line-height: 1.5">Uninstall returns Odoo to standard behaviour</td></tr>
+                  </tbody></table>
+               </div>
+            </td>
+            <td style="vertical-align: top; background-color: #ffffff; border-radius: 0 20px 20px 0">
+               <div style="padding: 32px 30px">
+                  <p style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #737373; margin: 0 0 14px">What you get the moment you install it</p>
+                  <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; width: 24px; color: #16a34a; font-weight: 800; font-size: 14.5px; padding: 5px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; color: #171717; line-height: 1.5; padding: 5px 0">The <b>Mark Emails as Read</b> field on every incoming mail server</td></tr>
+                     <tr><td style="vertical-align: top; width: 24px; color: #16a34a; font-weight: 800; font-size: 14.5px; padding: 5px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; color: #171717; line-height: 1.5; padding: 5px 0">Internal-user filtering on all IMAP servers</td></tr>
+                     <tr><td style="vertical-align: top; width: 24px; color: #16a34a; font-weight: 800; font-size: 14.5px; padding: 5px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; color: #171717; line-height: 1.5; padding: 5px 0">Known-contact filtering on all IMAP servers</td></tr>
+                     <tr><td style="vertical-align: top; width: 24px; color: #16a34a; font-weight: 800; font-size: 14.5px; padding: 5px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; color: #171717; line-height: 1.5; padding: 5px 0">Protection against contacts being created from email</td></tr>
+                     <tr><td style="vertical-align: top; width: 24px; color: #16a34a; font-weight: 800; font-size: 14.5px; padding: 5px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; color: #171717; line-height: 1.5; padding: 5px 0">Message-ID de-duplication per server</td></tr>
+                     <tr><td style="vertical-align: top; width: 24px; color: #16a34a; font-weight: 800; font-size: 14.5px; padding: 5px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; color: #171717; line-height: 1.5; padding: 5px 0">A readable summary in the Odoo server log after every fetch</td></tr>
+                     <tr><td style="vertical-align: top; width: 24px; color: #16a34a; font-weight: 800; font-size: 14.5px; padding: 5px 0">&#10003;</td><td style="vertical-align: top; font-size: 14.5px; color: #171717; line-height: 1.5; padding: 5px 0">POP3 servers left exactly as Odoo shipped them</td></tr>
+                  </tbody></table>
+                  <p style="margin: 18px 0 0; font-size: 13px; line-height: 1.55; color: #737373">
+                     Paid work is optional and separate: if you want the filter
+                     extended &mdash; a per-server allowlist, a different rule
+                     for one alias, a report of what was skipped &mdash; Doodex
+                     can build it. Ask us for a quote before you commit to
+                     anything.
+                  </p>
+               </div>
+            </td>
+         </tr></tbody></table>
+      </div>
+   </div>
+</div>
+
+<!-- =========================================== 13 requirements and how to start -->
+<div style="padding: 56px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">Requirements, and how to turn it on</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 760px">
+         Everything it needs is already in your Odoo. Nothing to buy, nothing to
+         install alongside it.
+      </p>
+
+      <div style="margin: 26px -44px 0">
+         <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 44px 0px"><tbody><tr>
+            <td style="vertical-align: top; width: 52.5%">
+               <p style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #737373; margin: 0 0 4px">What it runs on</p>
+               <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-top: 12px; font-size: 14px"><tbody>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top">Odoo version</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top">19.0 &mdash; Community and Enterprise</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top; background-color: #faf7fc">Module version</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top; background-color: #faf7fc">19.0.1.0.0</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top">Technical name</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top">personal_email_usage</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top; background-color: #faf7fc">Depends on</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top; background-color: #faf7fc">base, mail &mdash; both part of standard Odoo</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top">License</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top">LGPL-3</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top; background-color: #faf7fc">Publisher</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top; background-color: #faf7fc">Doodex</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top">Mail server type</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top">IMAP (POP3 servers keep Odoo&rsquo;s own behaviour)</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top; background-color: #faf7fc">Python packages</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top; background-color: #faf7fc">None beyond what Odoo already installs</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top">External services</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top">None. Nothing leaves your server.</td></tr>
+                  <tr><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; font-weight: 700; color: #270140; width: 42%; vertical-align: top; background-color: #faf7fc">Hosting</td><td style="padding: 11px 14px; line-height: 1.2; border-bottom: 1px solid #ece4f3; vertical-align: top; background-color: #faf7fc">Odoo.sh, on-premise or any self-managed hosting that accepts custom addons</td></tr>
+               </tbody></table>
+            </td>
+            <td style="vertical-align: top; width: 47.5%">
+               <p style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #737373; margin: 0 0 4px">Setup &mdash; about two minutes</p>
+               <div style="padding-left: 15px"><table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-top: 14px"><tbody>
+                  <tr>
+                     <td style="vertical-align: top; width: 29px; padding-bottom: 22px; border-left-width: 2px; border-left-style: solid; border-left-color: #ece4f3"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9999px; background-color: #fa7268; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px; margin-left: -16px">1</span></td>
+                     <td style="vertical-align: top; padding-bottom: 22px"><h4 style="font-size: 15px; color: #270140; margin: 4px 0 5px; font-weight: 700; letter-spacing: -0.015em">Install it</h4><p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.6">Drop the module in your addons folder, update the Apps list and install <b>Personal Email Usage</b>. The filters are live from the next fetch.</p></td>
+                  </tr>
+                  <tr>
+                     <td style="vertical-align: top; width: 29px; padding-bottom: 22px; border-left-width: 2px; border-left-style: solid; border-left-color: #ece4f3"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9999px; background-color: #fa7268; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px; margin-left: -16px">2</span></td>
+                     <td style="vertical-align: top; padding-bottom: 22px"><h4 style="font-size: 15px; color: #270140; margin: 4px 0 5px; font-weight: 700; letter-spacing: -0.015em">Turn on developer mode</h4><p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.6">Settings &rarr; General Settings &rarr; Developer Tools &rarr; Activate the developer mode. The read-status field is a technical setting, so it only appears there.</p></td>
+                  </tr>
+                  <tr>
+                     <td style="vertical-align: top; width: 29px; padding-bottom: 22px; border-left-width: 2px; border-left-style: solid; border-left-color: #ece4f3"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9999px; background-color: #fa7268; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px; margin-left: -16px">3</span></td>
+                     <td style="vertical-align: top; padding-bottom: 22px"><h4 style="font-size: 15px; color: #270140; margin: 4px 0 5px; font-weight: 700; letter-spacing: -0.015em">Set the read status</h4><p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.6">Settings &rarr; Technical &rarr; Email &rarr; Incoming Mail Servers. Open your IMAP server and tick or untick <b>Mark Emails as Read</b>.</p></td>
+                  </tr>
+                  <tr>
+                     <td style="vertical-align: top; width: 29px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9999px; background-color: #270140; color: #ffffff; font-size: 15px; font-weight: 800; text-align: center; line-height: 30px; margin-left: -16px">&#10003;</span></td>
+                     <td style="vertical-align: top"><h4 style="font-size: 15px; color: #270140; margin: 4px 0 5px; font-weight: 700; letter-spacing: -0.015em">Check it worked</h4><p style="margin: 0; font-size: 13.5px; color: #737373; line-height: 1.6">Press <b>Fetch Now</b> and read the Odoo server log. The summary line tells you how many messages were fetched and how many were skipped.</p></td>
+                  </tr>
+               </tbody></table></div>
+            </td>
+         </tr></tbody></table>
+      </div>
+   </div>
+</div>
+
+<!-- ==================================================================== 14 FAQ -->
+<div id="peu-faqs" style="background-color: #faf7fc; border-top: 1px solid #ece4f3; border-bottom: 1px solid #ece4f3; padding: 56px 24px">
+   <div style="max-width: 772px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 12px; font-weight: 800; color: #e85c52; letter-spacing: 0.06em; margin-right: 14px">06</span><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">FAQ</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">Twelve questions people actually ask</h2>
+
+      <div style="margin-top: 22px">
+      <details class="faq" open="open" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Does this replace Odoo&rsquo;s incoming mail server?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">No. It extends it. Your existing incoming mail server records, credentials, aliases and scheduled action stay exactly as they are. The module only adds checks that run before a message is routed.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">What happens to an email from someone who is not a contact?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">Nothing is created. The message is skipped, a line is written to the Odoo server log saying so, and the email itself stays in your mailbox where a person can still read it. It is not deleted and it is not moved.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Will it stop Odoo creating duplicate contacts?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">It stops Odoo creating contacts from incoming email altogether. When an alias points at Contacts and the sender is already saved, that existing record is used. When the sender is unknown, no record is made. Contacts created by people, imports or other modules are unaffected.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Does it work on Odoo Community, or only Enterprise?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">Both. It depends only on <b>base</b> and <b>mail</b>, which ship with Community.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Which Odoo versions are supported?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">This listing is for Odoo 19.0, module version 19.0.1.0.0. If you need it on another version, email odoo@doodex.net and tell us which one &mdash; we will tell you honestly what porting it involves.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Does it work with POP3?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">The filters apply to IMAP servers. A POP3 server on the same database keeps Odoo&rsquo;s standard behaviour and is not touched by this module in any way.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Where exactly is the Mark Emails as Read setting?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">Turn on developer mode, then go to Settings &rarr; Technical &rarr; Email &rarr; Incoming Mail Servers and open your server. The checkbox sits just after Keep Attachments. It is a technical setting, so it is intentionally hidden without developer mode.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Should I tick Mark Emails as Read or leave it off?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">Leave it off if your team still watches the mailbox in Outlook or Gmail and you want messages to stay bold and unread there. Tick it if the mailbox receives a lot of mail from unknown senders &mdash; that way each message is examined once and marked read, rather than being looked at and skipped on every fetch.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Does it filter emails my team sends to each other?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">Yes. If the sender address matches the login of an internal Odoo user, the message is skipped. Portal users and public users are not treated as internal staff, so their mail follows the normal contact rule instead.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Does it send my data anywhere?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">No. There is no external API call, no telemetry and no account. The module reads your mail server and your own Odoo database and writes to nothing else. That matters for GDPR, and it is why the answer is this short.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">What happens if I uninstall it?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">Odoo returns to its standard incoming mail behaviour immediately. The added field disappears with the module. Messages that were already threaded stay where they are &mdash; nothing is removed.</p></div></details>
+
+      <details class="faq" style="border-top: 1px solid #ece4f3; border-bottom: 1px solid #ece4f3"><summary style="display: block; padding: 16px 30px 16px 0"><span style="font-size: 20px; font-weight: 700; color: #e85c52; float: right; margin-left: 16px; line-height: 1.25">+</span><span style="display: block; font-size: 15.5px; font-weight: 700; color: #270140; line-height: 1.4">Can you customise the rules for us?</span></summary><div style="padding: 0 30px 18px 0"><p style="margin: 0; font-size: 14px; color: #525252; line-height: 1.65">Yes, and it is a separate paid engagement, quoted before any work starts. Common requests are a per-server allowlist, a different rule for one alias, or a report of what was skipped. Email odoo@doodex.net and describe what you need.</p></div></details>
+      </div>
+   </div>
+</div>
+
+<!-- ============================================================= 15 cross-sell -->
+<div style="padding: 56px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">Works great with</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">Other Doodex modules, built the same way</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252; max-width: 720px">
+         Different problems, same approach: narrow scope, a one-time price, and
+         the limits stated up front.
+      </p>
+      <div style="margin-top: 20px">
+         <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 8px 4px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>Narrow scope</span>
+         <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 8px 4px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>One-time price</span>
+         <span style="display: inline-block; font-size: 13px; font-weight: 600; color: #270140; background-color: #f4eef8; padding: 7px 15px; border-radius: 9999px; margin: 4px 8px 4px 0"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background-color: #fa7268; margin-right: 8px; vertical-align: middle"></span>Limits stated up front</span>
+      </div>
+
+      <div style="margin: 8px -18px -18px">
+         <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 18px 18px; height: 1px"><tbody><tr>
+            <td style="vertical-align: top; height: 100%; background-color: #270140; border-width: 1px; border-style: solid; border-color: #270140; border-radius: 14px">
+               <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                  <tr><td style="vertical-align: top; padding: 22px 22px 0">
+                     <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 16px"><tbody><tr>
+                        <td style="vertical-align: top; width: 48px"><img src="./assets/growth-suite-logo.png" alt="" width="132" height="132" style="max-width: none; min-width: 40px; width: 40px; height: 40px; display: block; border-radius: 9px"></td>
+                        <td style="vertical-align: top; text-align: right"><span style="display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: #ffffff; background-color: #432259; padding: 6px 12px; border-radius: 9999px; white-space: nowrap">$349 once</span></td>
+                     </tr></tbody></table>
+                     <h3 style="color: #ffffff; letter-spacing: -0.015em; font-weight: 800; font-size: 17px; margin: 0 0 8px">Doodex Growth Suite</h3>
+                     <p style="font-size: 13.5px; color: #cbc2d1; margin: 0; line-height: 1.6">Five CRM and marketing modules that share one another&rsquo;s data: BizScan AI, Campaign Manager, Smart Dashboards, User Roles and Email Sync+. Sold as one suite.</p>
+                  </td></tr>
+                  <tr><td style="vertical-align: bottom; padding: 20px 22px 22px">
+                     <a class="pbtn" href="/apps/modules/19.0/marketing_crm_automation_dashboard_campaign_doodex" style="display: block; background-color: #fa7268; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 16px; border-radius: 10px; text-align: center; line-height: 1.3">Open on the Apps Store &rarr;</a>
+                  </td></tr>
+               </tbody></table>
+            </td>
+            <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+               <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                  <tr><td style="vertical-align: top; padding: 22px 22px 0">
+                     <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 16px"><tbody><tr>
+                        <td style="vertical-align: top; width: 48px"><img src="./assets/flow-survey-reader-logo.png" alt="" width="132" height="132" style="max-width: none; min-width: 40px; width: 40px; height: 40px; display: block; border-radius: 9px"></td>
+                        <td style="vertical-align: top; text-align: right"><span style="display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: #270140; background-color: #f4eef8; padding: 6px 12px; border-radius: 9999px; white-space: nowrap">Free</span></td>
+                     </tr></tbody></table>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 17px; margin: 0 0 8px">Flow Survey Reader</h3>
+                     <p style="font-size: 13.5px; color: #737373; margin: 0; line-height: 1.6">Publish conditional surveys and forms straight from Odoo and keep every answer in your own database.</p>
+                  </td></tr>
+                  <tr><td style="vertical-align: bottom; padding: 20px 22px 22px">
+                     <a class="pbtn" href="/apps/modules/19.0/flow_survey_reader" style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 16px; border-radius: 10px; text-align: center; line-height: 1.3">Open on the Apps Store &rarr;</a>
+                  </td></tr>
+               </tbody></table>
+            </td>
+            <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-width: 1px; border-style: solid; border-color: #ece4f3; border-radius: 14px">
+               <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                  <tr><td style="vertical-align: top; padding: 22px 22px 0">
+                     <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 16px"><tbody><tr>
+                        <td style="vertical-align: top; width: 48px"><img src="./assets/flow-survey-builder-logo.png" alt="" width="132" height="132" style="max-width: none; min-width: 40px; width: 40px; height: 40px; display: block; border-radius: 9px"></td>
+                        <td style="vertical-align: top; text-align: right"><span style="display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: #270140; background-color: #f4eef8; padding: 6px 12px; border-radius: 9999px; white-space: nowrap">$199 once</span></td>
+                     </tr></tbody></table>
+                     <h3 style="color: #270140; letter-spacing: -0.015em; font-weight: 800; font-size: 17px; margin: 0 0 8px">Flow Survey Builder</h3>
+                     <p style="font-size: 13.5px; color: #737373; margin: 0; line-height: 1.6">The drag-and-drop editor for those surveys: 25 question types, slide branching and full theming. Installing it brings the free Reader with it.</p>
+                  </td></tr>
+                  <tr><td style="vertical-align: bottom; padding: 20px 22px 22px">
+                     <a class="pbtn" href="/apps/modules/19.0/flow_survey" style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 16px; border-radius: 10px; text-align: center; line-height: 1.3">Open on the Apps Store &rarr;</a>
+                  </td></tr>
+               </tbody></table>
+            </td>
+         </tr></tbody></table>
+      </div>
+   </div>
+</div>
+
+<!-- =============================================================== 16 releases -->
+<div id="peu-releases" style="background-color: #faf7fc; border-top: 1px solid #ece4f3; border-bottom: 1px solid #ece4f3; padding: 56px 24px">
+   <div style="max-width: 772px; margin: 0 auto; padding: 0">
+      <table class="lay" style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-bottom: 8px"><tbody><tr>
+         <td style="vertical-align: middle; width: 1px; white-space: nowrap; padding-right: 14px"><span style="font-size: 12px; font-weight: 800; color: #e85c52; letter-spacing: 0.06em; margin-right: 14px">07</span><span style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #737373">Releases</span></td>
+         <td style="vertical-align: middle"><span style="display: block; height: 1px; background-color: #ece4f3"></span></td>
+      </tr></tbody></table>
+      <h2 style="color: #270140; letter-spacing: -0.015em; margin: 0; font-weight: 800; font-size: clamp(23px, 2.7vw, 27px); line-height: 1.22">Public release history</h2>
+      <p style="margin: 12px 0 0; font-size: clamp(16.5px, 1.7vw, 18px); line-height: 1.6; color: #525252">
+         Every version published on this page is listed here, newest first, with
+         what changed.
+      </p>
+
+      <div style="margin-top: 24px">
+         <div style="border-left-width: 2px; border-left-style: solid; border-left-color: #ece4f3; padding-left: 24px">
+            <span style="display: block; width: 11px; height: 11px; border-radius: 9999px; background-color: #fa7268; margin: 6px 0 -17px -30px"></span>
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+               <td style="vertical-align: middle; width: 1px; white-space: nowrap"><span style="font-size: 15.5px; font-weight: 800; color: #270140">19.0.1.0.0</span></td>
+               <td style="vertical-align: middle; padding-left: 10px"><span style="font-size: 12.5px; color: #737373; font-weight: 600">First public release</span></td>
+            </tr></tbody></table>
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px; margin-top: 10px"><tbody>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #e8f6ec; color: #16a34a">NEW</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">Mark Emails as Read setting on the incoming mail server, shown in developer mode.</td></tr>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #e8f6ec; color: #16a34a">NEW</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">Emails sent from internal Odoo users are skipped and logged.</td></tr>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #e8f6ec; color: #16a34a">NEW</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">Emails from senders who are not saved in Contacts are skipped and logged.</td></tr>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #e8f6ec; color: #16a34a">NEW</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">Incoming email can no longer create a contact record; an existing contact is matched and reused instead.</td></tr>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #e8f6ec; color: #16a34a">NEW</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">Message-ID de-duplication per incoming mail server.</td></tr>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #e8f6ec; color: #16a34a">NEW</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">Summary log line after every fetch: fetched, failed and skipped counts.</td></tr>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #f4eef8; color: #270140">IMP</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">POP3 and other non-IMAP server types are explicitly passed through to standard Odoo behaviour.</td></tr>
+               <tr><td style="vertical-align: top; width: 54px; padding: 5px 10px 5px 0"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; line-height: 14px; padding: 3px 8px; border-radius: 6px; background-color: #f4eef8; color: #270140">IMP</span></td><td style="vertical-align: top; font-size: 13.5px; color: #525252; padding: 5px 0; line-height: 1.55">Automated tests covering the filters, the read-status behaviour and the no-auto-contact rule.</td></tr>
+            </tbody></table>
+         </div>
+      </div>
+
+      <p style="margin: 24px 0 0; font-size: 13px; line-height: 1.55; color: #737373">
+         Found something that does not behave as described on this page? Email
+         odoo@doodex.net with your Odoo version and the relevant server log
+         line. Fixes are published here as a new version.
+      </p>
+   </div>
+</div>
+
+<!-- ================================================================ 17 CTA 3/3 -->
+<div style="padding: 32px 24px">
+   <div style="max-width: 1032px; margin: 0 auto; padding: 0">
+      <div style="background-color: #270140; border-radius: 20px; padding: 36px 28px 26px">
+         <div style="max-width: 660px; margin: 0 auto; text-align: center">
+            <p style="font-size: 11.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: #fa7268; margin: 0 0 8px">Free to install, free to keep</p>
+            <h2 style="color: #ffffff; letter-spacing: -0.015em; font-weight: 800; font-size: clamp(23px, 2.8vw, 28px); line-height: 1.25; margin: 0 0 8px">Install it, or ask us first &mdash; both are fine</h2>
+            <p style="color: #c7bdcd; font-size: 14.5px; line-height: 1.55; margin: 0">
+               If you already know your mailbox needs this, install it and tick
+               the box. If you would rather have someone check your setup first,
+               that is what the three routes below are for.
+            </p>
+         </div>
+         <div style="margin: 8px -14px -14px">
+            <table class="lay" style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 14px 14px; height: 1px"><tbody><tr>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #fa7268">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">1</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #fa7268; color: #ffffff; padding: 4px 9px; border-radius: 9999px">30 minutes</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">Book a call</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">A consultant looks at your incoming mail setup with you.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <span style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center"><img src="./assets/qr-meeting.png" alt="QR code for the Doodex meeting booking page" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></span>
+                        <span style="display: block; background-color: #fa7268; color: #ffffff; font-weight: 700; font-size: 13px; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">hub.doodex.net/r/meeting</span>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #ffffff">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">2</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #f4eef8; color: #270140; padding: 4px 9px; border-radius: 9999px">Written reply</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">Email us</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">Questions, bug reports and quote requests all go here.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <a href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center; text-decoration: none"><img src="./assets/qr-contact.png" alt="QR code for the Doodex contact page" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></a>
+                        <a class="pbtn" href="mailto:odoo@doodex.net?subject=Personal%20Email%20Usage" style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 13px; text-decoration: none; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">odoo@doodex.net</a>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+               <td style="vertical-align: top; height: 100%; background-color: #ffffff; border-radius: 14px; border-width: 2px; border-style: solid; border-color: #ffffff">
+                  <table style="width: 100%; height: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody>
+                     <tr><td style="vertical-align: top; padding: 16px 16px 0">
+                        <table style="width: 100%; border-collapse: collapse; border-spacing: 0px 0px"><tbody><tr>
+                           <td style="vertical-align: middle; width: 30px"><span style="display: inline-block; width: 30px; height: 30px; border-radius: 9px; background-color: #270140; color: #ffffff; font-size: 13px; font-weight: 800; text-align: center; line-height: 30px">3</span></td>
+                           <td style="vertical-align: middle; text-align: right"><span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; background-color: #f4eef8; color: #270140; padding: 4px 9px; border-radius: 9999px">Fastest reply</span></td>
+                        </tr></tbody></table>
+                        <h3 style="font-size: 15.5px; color: #270140; font-weight: 800; letter-spacing: -0.015em; margin: 9px 0 0">WhatsApp</h3>
+                        <p style="font-size: 12.5px; line-height: 1.5; color: #737373; margin: 6px 0 0">Message the team from the code below.</p>
+                     </td></tr>
+                     <tr><td style="vertical-align: bottom; padding: 12px 16px 16px">
+                        <span style="display: block; background-color: #faf7fc; border-radius: 10px; padding: 10px; text-align: center"><img src="./assets/qr-whatsapp.png" alt="QR code for the Doodex WhatsApp channel" width="98" height="98" style="max-width: none; min-width: 98px; display: block; width: 98px; height: 98px; margin: 0 auto"></span>
+                        <span style="display: block; background-color: #ffffff; color: #270140; border-width: 1.5px; border-style: solid; border-color: #270140; font-weight: 700; font-size: 13px; padding: 9px 10px; border-radius: 10px; text-align: center; line-height: 1.3; margin-top: 9px">hub.doodex.net/r/whatsapp</span>
+                     </td></tr>
+                  </tbody></table>
+               </td>
+            </tr></tbody></table>
+         </div>
+         <p style="color: #93809f; font-size: 12px; margin: 16px 0 0; text-align: center">
+            Scan a code with your phone camera, or type the address printed
+            under it. Both go to the same place.
+         </p>
+      </div>
+   </div>
+</div>
+
+</div>
+<!-- ===================== end Personal Email Usage listing ================= -->
+</body></html>
