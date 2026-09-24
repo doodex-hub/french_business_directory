@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, date
 from dateutil.relativedelta import relativedelta
 from odoo.fields import Datetime
 import re
-from odoo.osv import expression
 import traceback
 from markupsafe import Markup
 import email

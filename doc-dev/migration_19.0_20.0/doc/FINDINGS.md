@@ -21,10 +21,10 @@
 |---|---|---|---|---|---|
 | MF-01 | `ir.model.access` (model + CSV) dihapus di 20.0, diganti `ir.access` / `ir.access.csv` | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` | Tinggi (install-blocking `fr_business_directory`) | Keputusan AI: konversi format native — diterapkan Step 6 |
 | MF-02 | `res.partner.company_registry` dihapus dari base 20.0 → SIRET pindah ke JSON `additional_identifiers['FR_SIRET']` (tervalidasi) | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` | Kritis (fitur inti "Select") | Keputusan AI: tulis `FR_SIRET` via `additional_identifiers`, validasi native dipertahankan — deviasi edge-case dicatat |
-| MF-03 | `base.view_partner_form` 20.0 dirombak: `<field id="company" name="name">` hilang, `is_company` jadi computed dari VAT | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` + `[PERLU-KEPUTUSAN]` (visibilitas tombol) | Tinggi (install-blocking + UX tombol) | Keputusan AI: xpath baru, ekspresi `is_company != True` dipertahankan; efek semantik diverifikasi Step 9, konfirmasi visual Step 10 |
+| MF-03 | `base.view_partner_form` 20.0 dirombak: `<field id="company" name="name">` hilang, `is_company` jadi computed dari VAT | Step 1 (pre-scan) / 2 / 6 (G1 #6) | `[GAP-MIGRASI]` + `[PERLU-KEPUTUSAN]` (visibilitas tombol) | Tinggi (install-blocking + UX tombol) | Struktur ✅ (G1 #5). **Semantik TERBUKTI berubah (G1 #6): tombol hilang setelah save untuk company tanpa VAT — MENUNGGU KEPUTUSAN DEV** (default: ekspresi 19.0 dipertahankan) |
 | MF-04 | package `odoo.osv` dihapus total di 20.0 → `from odoo.osv import expression` (tak terpakai) ImportError | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` | Tinggi (install-blocking `personal_email_usage`) | Keputusan AI: hapus baris import itu saja |
 | MF-05 | `self._cr` / `self._context` masih deprecated (bukan dihapus) di 20.0 | Step 2 | `[DIWARISI-SOURCE]` (informasional) | Rendah | Tidak diubah (konsisten keputusan MF-04 18→19) |
-| MF-06 | Test existing terikat ke `company_registry` + data SIRET dummy yang mungkin tidak lolos validasi Luhn 20.0 | Step 2 | `[GAP-MIGRASI]` (test) | Sedang | Keputusan AI: sesuaikan assertion + data test, tanpa mengubah intent test |
+| MF-06 | Test existing terikat ke `company_registry` + data SIRET dummy yang tidak lolos validasi Luhn 20.0 | Step 2 / 6 (G1 #5) | `[GAP-MIGRASI]` (test) | Sedang | ✅ RESOLVED (G1 #7, 42/42 PASS) |
 | MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
 
 ---
@@ -69,6 +69,16 @@
 3. Kalau replace dilakukan apa adanya (div pengganti ber-`invisible="is_company != True"`), partner non-company di 20.0 akan kehilangan field nama sama sekali (di 19.0 masih ada field `individual` terpisah).
 **Keputusan AI (bagian struktur, wajib):** target xpath `//h1/field[@name='name']` (satu-satunya `h1` di view itu), `position="replace"` dengan `div` flex nowrap (style identik 19.0) yang berisi `$0` (field nama native 20.0 apa adanya, SELALU tampil) + tombol "Business Directory" (atribut identik 19.0, `invisible="is_company != True"`). Div TIDAK diberi `invisible` — supaya individu tetap punya field nama (setara 19.0 di mana individu memakai field native).
 **Bagian yang butuh mata manusia (`[PERLU-KEPUTUSAN]`):** ekspresi visibilitas tombol dipertahankan identik (`is_company != True`), tapi ARTI `is_company` berubah di platform 20.0 (company = entitas komersial sendiri + punya VAT valid, atau default `True` dari action Contacts sampai VAT/parent berubah). Kemungkinan efek: company tanpa VAT yang dibuat di luar action Contacts, atau yang VAT-nya dikosongkan, tidak lagi melihat tombol. Diverifikasi empiris di Step 9 (test `Form`), dan visual di Step 10. Kalau dev ingin tombol tetap muncul untuk company tanpa VAT, opsi alternatif: `invisible="parent_id"` (tampil untuk semua entitas komersial) — itu PERUBAHAN business rule, butuh persetujuan eksplisit dev.
+
+**Bukti empiris (G1 #6/#7, 2026-09-24, `test_new_partner_form_contacts_context_is_company`):** partner baru lewat context Contacts (`default_is_company=True`), tanpa VAT → `is_company` = **True** di form belum disimpan (tombol tampil) → **False setelah save** (recompute `has_vat=False`) → True setelah VAT diisi → False lagi saat VAT dihapus. Artinya di 20.0: company TANPA VAT kehilangan tombol "Business Directory" begitu disimpan (di 19.0 tombol tetap ada selama user memilih tipe Company). Klik tombol pada record baru tetap jalan (tombol tampil sebelum save; klik men-save lalu membuka wizard).
+
+**ESCALATION — Migrasi 20.0** (tidak memblokir Step 1-9; wajib diputuskan sebelum Step 11):
+- Step/Fase: Step 6 G2 / Step 9
+- Modul: french_business_directory (`fr_business_directory`)
+- Isu: tombol hanya muncul untuk partner yang oleh 20.0 dianggap company (punya VAT & tanpa parent) — company tanpa VAT tidak bisa memakai Business Directory setelah record disimpan.
+- Opsi: 1) Pertahankan `invisible="is_company != True"` (implementasi sekarang, port literal) — Risiko: sedang (fitur tidak tersedia untuk company tanpa VAT tersimpan); 2) `invisible="parent_id"` (tampil untuk semua entitas komersial, individu-tanpa-parent juga ikut dapat tombol) — Risiko: rendah teknis, tapi mengubah business rule; 3) `invisible="parent_id or not name"` atau varian lain sesuai kebutuhan bisnis.
+- Rekomendasi: konfirmasi visual di Step 10 dulu, lalu dev pilih. AI TIDAK mengubah business rule tanpa persetujuan.
+- Perlu keputusan user sebelum Step 11.
 
 ---
 

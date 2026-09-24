@@ -1,48 +1,59 @@
-# Diperbarui dari docker-env warisan project migrasi 17.0->18.0 (2026-08-24) untuk project migrasi
-# 18.0->19.0 (2026-08-26):
-# - `name:` project di-rename supaya tidak collide dengan container project 17->18 yang mungkin masih
-#   ada di Docker Desktop dev.
-# - `image: odoo:19.0` — tag ini BELUM diverifikasi tersedia di Docker Hub oleh AI (tidak ada akses
-#   jaringan di sesi ini). Kalau `docker compose up` gagal "manifest not found"/"pull access denied",
-#   itu indikasi tag resmi belum/berbeda nama, bukan kesalahan compose file — lapor ke dev.
-# - `-d` database name di-rename supaya tidak collide dengan DB project 17->18 lama.
-# - Ditambahkan `--test-enable --test-tags=/fr_business_directory,/personal_email_usage` — G1 SEKALIGUS
-#   menjalankan regression test suite existing (23 test, lihat 05b_TEST_PLAN_MIGRATION.md), bukan cuma
-#   install polos seperti compose file 17->18 lama.
-# - Tidak pakai `build:`/Dockerfile — modul ini TIDAK punya Tour test (tidak ada OWL/JS, dikonfirmasi
-#   01a_MIGRATION_INTAKE.md §2b), jadi `image:` langsung cukup (lebih cepat, tidak perlu Chrome/Dockerfile).
-name: french_business_directory_18_19
+# Diinstansiasi ulang untuk project migrasi 19.0->20.0 (2026-09-24), menggantikan compose 19.0
+# (`git show migration/19.0:docker-env/docker-compose.yml` — image odoo:19.0, port 8179).
+# - Odoo 20.0 FROM SOURCE (lihat Dockerfile): odoo20 di-bind-mount read-only (tidak ada image
+#   resmi odoo:20.0, knowledge 19-to-20.md). Enterprise TIDAK di-mount (modul Community-only).
+# - Kedua addon di-mount per folder dari target-codebase (branch migration/20.0).
+# - name/db/port unik (8196) supaya tidak bentrok dengan stack 19->20 lain yang jalan paralel di
+#   mesin dev (8078/8080/8091/8179 sudah dipakai).
+# - --db_host dst eksplisit (tidak ada entrypoint image resmi yang menerjemahkan HOST/USER/PASSWORD).
+# - --http-interface=0.0.0.0 wajib di 20.0 kalau server perlu dijangkau dari host.
+# - Demo data TIDAK dipasang: di 20.0 itu sudah default ("--without-demo ... (default)",
+#   odoo20/odoo/tools/config.py:256-260). `--without-demo=all` sengaja tidak dipakai — di 20.0
+#   nilai "all" memicu WARNING "invalid boolean value".
+# - Postgres 16: Odoo 20 menolak/memperingatkan Postgres < 16.
+# - Gotcha G1: WAJIB `docker compose down -v` sebelum tiap rerun --test-enable (kalau tidak, modul
+#   sudah terinstall -> instalasi & test di-skip diam-diam, "0 tests").
+name: french_business_directory_19_20
 
 services:
-  db_target:
-    image: postgres:15
+  db:
+    image: postgres:16
     environment:
       POSTGRES_USER: odoo
       POSTGRES_PASSWORD: odoo
       POSTGRES_DB: postgres
     volumes:
-      - target_db_data_19:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
 
-  odoo_target:
-    image: odoo:19.0
+  odoo:
+    build: .
+    shm_size: '2gb'
     depends_on:
-      - db_target
+      - db
     ports:
-      - "8179:8069"
-    environment:
-      HOST: db_target
-      USER: odoo
-      PASSWORD: odoo
+      - "8196:8069"
     volumes:
-      - ..:/mnt/extra-addons
+      - D:/Kuncoro/doodex/repo/odoo20:/odoo20:ro
+      - ../fr_business_directory:/mnt/extra-addons/fr_business_directory
+      - ../personal_email_usage:/mnt/extra-addons/personal_email_usage
+      - odoo-data:/var/lib/odoo
       - ./logs:/var/log/odoo
+    # Mode G1 + test suite (install -> jalankan test kedua addon -> berhenti).
+    # Untuk server interaktif (Step 10): FBD_MODE_ARGS="" dan tanpa --stop-after-init lewat
+    # `docker compose run` terpisah — lihat 09_DEV_TESTING.md.
     command: >
-      odoo -d target_db_19 -i fr_business_directory,personal_email_usage
-      --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons
+      python3 /odoo20/odoo-bin
+      -d fbd_test_20
+      --db_host=db --db_user=odoo --db_password=odoo
+      --data-dir=/var/lib/odoo
+      -i fr_business_directory,personal_email_usage
+      --addons-path=/odoo20/addons,/mnt/extra-addons
       --test-enable
       --test-tags=/fr_business_directory,/personal_email_usage
       --stop-after-init
-      --logfile=/var/log/odoo/odoo_target.log
+      --http-interface=0.0.0.0
+      --logfile=/var/log/odoo/odoo.log
 
 volumes:
-  target_db_data_19:
+  db-data:
+  odoo-data:

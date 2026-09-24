@@ -1,0 +1,4 @@
+id,name,model_id,group_id/id,operation,domain
+access_siret_wizard,siret_wizard,siret.wizard,base.group_user,crud,
+access_siret_wizard_result,siret_wizard_result,siret.wizard.result,base.group_user,crud,
+access_matching_etablissements,matching_etablissements,matching.etablissement,base.group_user,crud,

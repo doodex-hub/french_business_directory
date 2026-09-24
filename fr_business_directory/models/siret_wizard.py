@@ -2,6 +2,22 @@ from odoo import fields, models, api, _
 import requests
 import urllib
 
+
+def _fr_siret_identifiers(partner, siret):
+    """Return the partner's `additional_identifiers` with FR_SIRET overwritten by `siret`.
+
+    20.0 removed `res.partner.company_registry` (where 19.0 stored the SIRET); the SIRET now lives
+    in the `additional_identifiers` JSON under the `FR_SIRET` key — see FINDINGS.md MF-02. The
+    other stored identifiers are kept, FR_SIREN is dropped so that `write()` re-deduces it from
+    the new SIRET, and a falsy `siret` clears the key (like writing '' to company_registry did).
+    """
+    identifiers = dict(partner.additional_identifiers or {})
+    identifiers.pop('FR_SIRET', None)
+    identifiers.pop('FR_SIREN', None)
+    if siret:
+        identifiers['FR_SIRET'] = siret
+    return identifiers
+
 class SiretWizard(models.TransientModel):
     _name = 'siret.wizard'
     _description = 'Siret Wizard'
@@ -257,7 +273,7 @@ class SiretWizardResult(models.TransientModel):
             country_id = country_department.country_id.id if country_department and country_department.country_id else False
 
             partner.write({
-                'company_registry': self.siret,
+                'additional_identifiers': _fr_siret_identifiers(partner, self.siret),
                 'name': self.name,
                 'street': self.street,
                 'street2': self.street2,
@@ -272,7 +288,7 @@ class SiretWizardResult(models.TransientModel):
             })
         else:
             partner.write({
-                'company_registry': self.siret,
+                'additional_identifiers': _fr_siret_identifiers(partner, self.siret),
                 'name': self.name,
                 'street': self.street,
                 'street2': self.street2,
@@ -351,7 +367,7 @@ class MatchingEtablissement(models.TransientModel):
             partner.write({
                 'name': self.name,
                 'social_reason': self.social_reason,
-                'company_registry': self.siret,
+                'additional_identifiers': _fr_siret_identifiers(partner, self.siret),
                 'zip': self.code_postal,
                 'street': address_before_postal_code,
                 'street2': '',
@@ -366,7 +382,7 @@ class MatchingEtablissement(models.TransientModel):
             partner.write({
                 'name': self.name,
                 'social_reason': self.social_reason,
-                'company_registry': self.siret,
+                'additional_identifiers': _fr_siret_identifiers(partner, self.siret),
                 'zip': self.code_postal,
                 'street': address_before_postal_code,
                 'street2': '',

@@ -7,12 +7,17 @@
         <field name="mode">extension</field>
         <field name="priority" eval="17"/>
         <field name="arch" type="xml">
-            <field id="company" name="name" position="replace">
-                <div style="display: flex; align-items: center;white-space:nowrap" invisible="is_company != True">
-                    <field id="company" class="text-break" name="name" default_focus="1" placeholder="e.g. Lumber Inc" required="type == 'contact'" invisible="is_company != True" />
-                    <button name="siret_wizard" type="object" class="oe_stat_button oe_highlight search-button prestaterre-search-button" string="Business Directory" icon="fa-search" invisible="is_company != True" />
-                </div>
-            </field>
+            <!-- 20.0: the form has a single `name` field in the header <h1> (19.0 had separate
+                 id="company"/id="individual" fields). Keep the native field as-is ($0) and always
+                 visible; only the button stays company-only — see FINDINGS.md MF-03.
+                 `$0` must be the whole text of its element (odoo/tools/template_inheritance.py),
+                 hence the wrapper first, then the button placed after the field. -->
+            <xpath expr="//h1/field[@name='name']" position="replace">
+                <div style="display: flex; align-items: center;white-space:nowrap">$0</div>
+            </xpath>
+            <xpath expr="//h1/div/field[@name='name']" position="after">
+                <button name="siret_wizard" type="object" class="oe_stat_button oe_highlight search-button prestaterre-search-button" string="Business Directory" icon="fa-search" invisible="is_company != True" />
+            </xpath>
         </field>
     </record>
 </odoo>

@@ -16,7 +16,10 @@ def _mock_response(results, total_results=None, total_pages=1):
 
 def _siege(**overrides):
     base = {
-        'siret': '12345678900012',
+        # 20.0: SIRET must pass the FR_SIRET (Luhn) validator once written to the partner
+        # (FINDINGS.md MF-02/MF-06) — 19.0's dummy '12345678900012' is rejected. Odoo 20.0's own
+        # FR_SIRET placeholder is used instead.
+        'siret': '33417522101010',
         'etat_administratif': 'A',
         'numero_voie': '10',
         'libelle_voie': 'rue de la Paix',
@@ -124,15 +127,16 @@ class TestSiretWizard(TransactionCase):
         """AC-04-01 — select_siret() on a result row overwrites partner fields.
 
         `res.partner.siret` (dedicated l10n_fr field in 18.0) was removed in 19.0 and
-        consolidated into the generic core field `company_registry` (see DIFF-02, MF-02) —
-        assert against `company_registry`, not `siret`.
+        consolidated into the generic core field `company_registry` (18->19 MF-02); 20.0 removed
+        `company_registry` too — the SIRET now lives in `additional_identifiers['FR_SIRET']`
+        (19->20 DIFF-02/MF-02), so assert through `_get_additional_identifier('FR_SIRET')`.
         """
         with patch('requests.get', return_value=_mock_response([_result(nom_complet='NEW CO')])):
             wizard = self.env['siret.wizard'].with_context(active_id=self.partner.id).create({})
         row = wizard.result_ids[0]
         row.with_context(active_id=self.partner.id).select_siret()
         self.assertEqual(self.partner.name, 'NEW CO')
-        self.assertEqual(self.partner.company_registry, '12345678900012')
+        self.assertEqual(self.partner._get_additional_identifier('FR_SIRET'), '33417522101010')
         self.assertEqual(self.partner.city, 'Paris')
 
     def test_select_department_field_untouched_when_model_absent(self):

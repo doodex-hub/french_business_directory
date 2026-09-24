@@ -13,13 +13,13 @@
     'license': 'LGPL-3',
 
     'category': 'Extra Tools',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
     'application': False,
 
     'depends': ['base', 'contacts', 'l10n_fr'],
 
     "data": [
-        'security/ir.model.access.csv',
+        'security/ir.access.csv',
         "views/menu_item.xml",
         "views/partner.xml",
         "views/siret_wizard_views.xml",

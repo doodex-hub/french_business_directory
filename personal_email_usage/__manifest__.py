@@ -36,7 +36,7 @@ Technical Details:
     'website': "https://www.doodex.net",
 
     'category': 'Discuss',
-    'version': '19.0.1.0.0',
+    'version': '20.0.1.0.0',
 
     'depends': ['base','mail'],
 
