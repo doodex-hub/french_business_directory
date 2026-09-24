@@ -118,3 +118,21 @@
 **Ref:** `CLAUDE.md` open item conditioning, `01a_MIGRATION_INTAKE.md` Ringkasan #1
 **Lokasi:** `origin/19.0` — 13 commit tidak ada di `migration/19.0` (`00f78e7` "cleaning" … `bebaf14`), 137 file berbeda di `static/description/**` kedua addon (banner.png → banner.gif ~23MB, icon.png baru, folder `assets/` baru, `index.html` ditulis ulang) + fix key `images` manifest; `origin/19.0` juga TIDAK punya folder `tests/` `personal_email_usage` (MF-04 18→19).
 **Keputusan pemilik modul:** ✅ **Dev 2026-09-24: TIDAK di-port** — baseline = `migration/19.0` HEAD apa adanya. Kalau aset store dibutuhkan di rilis 20.0, itu kerja terpisah (merge/cherry-pick oleh dev, di luar migrasi ini).
+
+---
+
+## Pendalaman MF-02 & MF-03 (2026-09-24, atas pertanyaan dev "blocker atau bukan?")
+
+### MF-02 — BUKAN blocker (risiko praktis ~nol)
+- Validator yang dipakai 20.0 = `stdnum.fr.siret.validate` (stdnum 1.19 di image test): cek 14 digit + Luhn + SIREN valid, **dengan pengecualian resmi La Poste** (`356000000…` pakai aturan jumlah-digit kelipatan 5, kantor pusat `35600000000048`). Diuji langsung: `33417522101010`, `73282932000074`, `35600000000048`, `35600000049837` VALID; `12345678900012` (dummy test lama) INVALID. Artinya aturan validasi = aturan INSEE sendiri — SIRET yang datang dari `recherche-entreprises.api.gouv.fr` (sumber resmi) lolos.
+- Jalur level result hanya membuat baris kalau `siege.siret` terisi (BSL-028), jadi nilai kosong/aneh tidak sampai ke Select di jalur itu.
+- SIRET yang tersimpan TETAP tampil di form partner walau negara partner kosong/bukan FR: `_compute_available_additional_identifiers_metadata` menyertakan key apa pun yang sudah tersimpan (`odoo20/.../res_partner.py:1641-1642`). Penting karena `select_siret` tidak mengisi `country_id` (model `res.country.department` tidak ada, BSL-006).
+- Belum terverifikasi: perilaku API untuk perusahaan "non-diffusible" — dicek dengan API live di Step 10.
+
+### MF-03 — BUKAN blocker untuk Step 10, TAPI regresi fungsional yang wajib diputuskan sebelum go-live
+- Untuk partner tanpa parent, `is_company != True` di 20.0 **ekuivalen dengan "tidak punya VAT valid"** (`is_company = commercial_partner_id == partner and has_vat`, dan partner tanpa parent adalah commercial partner-nya sendiri). Jadi port literal = "tombol hanya muncul kalau partner SUDAH punya VAT".
+- 20.0 tidak punya lagi pilihan Individual/Company di form (radio `company_type` hilang). Aturan 19.0 "tombol untuk kontak yang user tandai Company" tidak bisa direpresentasikan apa adanya.
+- Yang tetap jalan: form baru dari aplikasi Contacts (`default_is_company=True`) → tombol tampil sebelum save → klik (web client menyimpan dulu lalu menjalankan aksi) → wizard terbuka. Perlu dikonfirmasi live di Step 10.
+- Yang rusak dibanding 19.0: (a) company tanpa VAT yang sudah tersimpan tidak bisa membuka wizard lagi (mis. wizard ditutup tanpa Select, atau ingin refresh data); (b) partner yang dibuat dari jalur lain tanpa `default_is_company` tidak pernah melihat tombol; (c) "Select" mengisi SIRET, bukan VAT → setelah Select pun tombol tetap hilang.
+- Native 20.0 sendiri memperlakukan "partner tanpa parent" setara company di beberapa logic (`_handle_first_contact_creation`: "for a company (or root)", `res_partner.py:914-920`; `commercial_partner_id`).
+- Opsi: (1) pertahankan literal (status sekarang); (2) `invisible="parent_id"` — tombol untuk semua entitas tanpa parent (efek samping: individu pribadi tanpa parent juga melihat tombol, tidak berbahaya — wizard hanya mencari & menimpa atas konfirmasi); (3) varian lain sesuai kebutuhan bisnis. **Rekomendasi AI: opsi 2** (paling dekat dengan niat 19.0 di platform 20.0). Menunggu keputusan dev — AI tidak mengubah tanpa persetujuan.
