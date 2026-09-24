@@ -1,5 +1,5 @@
 {
-  "_status": "DRAFT — BELUM DIVALIDASI (dibuat 2026-08-21, dikoreksi 2026-08-21 setelah cek dokumentasi resmi Claude Code — code.claude.com/docs/en/permissions). Varian settings.json.template INI KHUSUS untuk project yang mengaktifkan Mode Git (Git eksekusi = Ya di CLAUDE.md) — lihat ai-doc/USAGE_GUIDE.md 'Mode Git'. Kalau Git eksekusi = Tidak (default), pakai settings.json.template biasa. ADA placeholder {{ABS_PATH_...}} di bawah yang WAJIB diisi path absolut nyata sebelum dipakai — lihat README.md 'Koreksi path-matching', kalau tidak diisi rule-nya inert.",
+  "_status": "Project french_business_directory (fr_business_directory + personal_email_usage) 19.0→20.0 — lanjutan dari migrasi 18.0→19.0 (SELESAI) di folder yang sama. Branch kerja: migration/20.0 (dari migration/19.0). Native-source = odoo19+enterprise19, native-target = odoo20+enterprise20. Tidak ada source-codebase folder terpisah — kode versi lama direferensikan via git diff/git show terhadap branch migration/19.0 di repo yang sama. Mode Git aktif (diwarisi dari settings.json.mode-git.template, bootstrap 2026-08-26; diperbarui 2026-09-24).",
 
   "permissions": {
     "allow": [
@@ -50,6 +50,10 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(MSYS_NO_PATHCONV=1 git show:*)",
+      "Bash(MSYS_NO_PATHCONV=1 git diff:*)",
+      "Bash(MSYS_NO_PATHCONV=1 git log:*)",
 
       "Edit(**)",
       "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/migration-records/**)"
@@ -63,9 +67,10 @@
       "Bash(git branch -D:*)",
       "Bash(gh pr create:*)",
 
-      "Edit(//D:/Kuncoro/doodex/repo/french-business-directory-migration-19-source/**)",
-      "Edit(//D:/Kuncoro/doodex/repo/odoo18/**)",
-      "Edit(//D:/Kuncoro/doodex/repo/enterprise19.0/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/odoo19/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/enterprise19/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/odoo20/**)",
+      "Edit(//D:/Kuncoro/doodex/repo/enterprise20/**)",
       "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/knowledge/**)",
       "Edit(//D:/Kuncoro/doodex/repo/migration-tool-project/migration-tool/templates/**)"
     ]
