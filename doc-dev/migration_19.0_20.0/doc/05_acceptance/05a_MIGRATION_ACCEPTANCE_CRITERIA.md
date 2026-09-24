@@ -89,7 +89,11 @@ Then `FR_SIRET` = SIRET baru, `FR_SIREN` = 9 digit pertama SIRET baru (deduksi n
 
 ## AC-07 — Quirk Pre-Existing (WAJIB dipertahankan)
 
-**AC-07-01** `[PRESERVE-BUG]` (verifies `BSL-008`) Given respons API tanpa `nom_complet`/`siret` ATAU `RequestException`, Then `NameError` (`_logger`), bukan log.
+**AC-07-01** `[FIX-DISETUJUI-DEV 2026-09-24, RMV-03]` (verifies `BSL-008` — deviasi disengaja dari 19.0) Given respons API tanpa `nom_complet`/`siret`, Then hasil itu di-log warning dan di-skip (bukan `NameError`). Given `RequestException`: HTTP 429 dicoba ulang maks. 2x mengikuti `Retry-After` (≤5 dtk); kalau tetap gagal, Then `UserError` berbahasa Inggris ("…is busy right now…" untuk 429, "…could not be reached…" untuk error lain), bukan traceback.
+
+**AC-07-04** `[FIX-DISETUJUI-DEV 2026-09-24, RMV-06]` Given wizard sudah terbuka, When disimpan (klik tombol pertama), Then API TIDAK dipanggil ulang; `total_pages`/`result_count`/`page_number` tetap benar.
+
+**AC-07-05** `[FIX-DISETUJUI-DEV 2026-09-24, RMV-02]` (verifies `BSL-004` — deviasi disengaja dari 19.0) Given wizard dipaginasi (Next/Prev), When Select, Then yang ditimpa adalah kontak asal (`active_id` awal), BUKAN partner ber-id = id wizard.
 **AC-07-02** (verifies `BSL-014`) Tidak ada kolisi `siret_wizard`/`social_reason` dengan core 20.0 (dicek 02 §0e: 0 match).
 **AC-07-03** `[PRESERVE-BUG]` (verifies `BSL-029`) Etablissement tanpa key `date_fermeture` tidak crash, `date_fermeture` falsy.
 

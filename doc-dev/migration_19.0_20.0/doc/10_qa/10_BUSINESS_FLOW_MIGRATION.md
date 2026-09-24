@@ -3,7 +3,7 @@
 **Step:** 10 — QA Testing (gate)
 **Ref:** `05_acceptance/05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `FINDINGS.md` (MF-02, MF-03, RMV-01..04)
 **Tanggal:** 2026-09-24 (slot diberikan dev: "mulai step 10")
-**Status:** ⚠️ Lulus Bersyarat — lihat Verdict (1 GAP-LAMA kritis menunggu keputusan dev)
+**Status:** ✔️ Lulus (setelah paket perbaikan RMV-02/03/06 disetujui dev) — sisa terbuka: MF-03 workaround (sign-off Step 11), RMV-04/05 GAP-LAMA
 
 **Environment:**
 - **20.0 (target):** `docker-env/` — Odoo 20.0 from source, DB `fbd_qa_20` (install bersih, tanpa demo), port 8196, branch `migration/20.0`.
@@ -77,7 +77,7 @@
 **Steps:** Next/Prev → buka baris hasil → Select → Ok.
 **Expected:** partner id 6 yang ditimpa (BSL-004: partner dari `active_id` = kontak asal).
 **Actual:** **partner yang ditimpa = partner dengan id SAMA dengan id wizard**, bukan partner asal. 20.0: wizard 1 → partner 1 ("My Company", partner perusahaan sendiri: nama/alamat/SIRET tertimpa). 19.0: wizard 1 → partner 1, wizard 2 → partner 2 (OdooBot) — **identik**. Penyebab: `fetch_next_page`/`fetch_previous_page` mengembalikan action tanpa `context`, dialog di-reload dengan `active_id` = id wizard sendiri. Tanpa paginasi → partner benar (S-07). **RMV-02 — GAP-LAMA, dampak korupsi data.**
-**Status:** [ ] Pass [x] Fail — GAP-LAMA (bukan regresi), ESCALATION ke dev
+**Status:** [x] Pass (setelah fix RMV-02 disetujui dev) — run pertama FAIL (GAP-LAMA, identik 19.0); rerun 2026-09-24 10:11 dengan data demo `rmv02_demo_setup.py`: kontak asal id 6 ter-update, korban id 7 utuh (`evidence/s09-rmv02-fixed-asal.png`)
 **Provenance:** [DIKONFIRMASI]
 
 ### S-07: Select tanpa paginasi — SIRET cabang La Poste (MF-02, kasus checksum khusus)
@@ -116,15 +116,31 @@
 **Status:** [x] Pass
 **Provenance:** [HASIL-BACA — ref: Step 9, AC-08..AC-11]
 
+### S-11: API membalas 429 → modul menunggu & mencoba ulang, tanpa "Oops" (setelah fix RMV-03/06)
+**Level:** Main Flow
+**Precondition:** paket perbaikan RMV-02/03/06 (disetujui dev 2026-09-24), data demo `rmv02_demo_setup.py`.
+**Mode eksekusi:** AI-interaktif + log server + query DB
+**Steps:** buka wizard dari kontak LA POSTE → Next.
+**Expected:** saat disimpan wizard TIDAK memanggil API ulang; kalau API membalas 429, modul menunggu `Retry-After` lalu mencoba ulang; halaman 2 tampil tanpa traceback.
+**Actual:** `web_save` 7 ms tanpa panggilan API, `total_pages=400` tersimpan, 25 hasil (tanpa record yatim). API membalas 429 → log `Directory API rate limited (429), retrying in 4.0s` → percobaan ulang sukses → halaman 2 tampil, **tanpa dialog "Oops"**. Pesan `UserError` Inggris untuk 429 berkepanjangan dicover test (`test_429_persisting_shows_english_busy_message`) — tidak dipaksakan live karena 429 tidak bisa dipicu sesuka hati.
+**Status:** [x] Pass
+**Provenance:** [DIKONFIRMASI] (pesan UserError: [HASIL-BACA — ref: Step 9 test])
+
 ---
+
+## Paket perbaikan pasca-Step 10 (disetujui dev 2026-09-24)
+
+RMV-02, RMV-03, RMV-06 diperbaiki atas persetujuan eksplisit dev (deviasi disengaja dari 19.0), pesan user dalam bahasa Inggris. Detail & bukti: `FINDINGS.md` §"Paket perbaikan pasca-Step 10". `run-test.sh`: **0 failed, 0 error of 53**. S-06 dan S-11 di-rerun live → Pass.
 
 ## Loop-back yang dilakukan di Step 10
 
 | Temuan | Klasifikasi | Tindakan | Bukti |
 |---|---|---|---|
 | RMV-01 ikon Font Awesome rusak (tombol, Prev, Next) | REGRESI | ✅ Difix di target: `partner.xml` `icon="search"`, `siret_wizard_views.xml` `icon="arrow_back"` + `<i class="oi" data-icon="arrow_forward"/>`; test baru `test_no_font_awesome_icons_rmv01` | Visual identik 19.0; `run-test.sh` 0 failed, 0 error of 44 |
-| RMV-02 Select setelah paginasi menimpa partner id = id wizard | GAP-LAMA | ⏸️ TIDAK difix (aturan migrasi) — ESCALATION | S-06, 19.0 & 20.0 |
-| RMV-03 API 429 memicu NameError BSL-008 (sering) | GAP-LAMA | ⏸️ TIDAK difix — dicatat, keputusan dev | S-02, S-04 |
+| RMV-02 Select setelah paginasi menimpa partner id = id wizard | GAP-LAMA | ✅ Difix (disetujui dev) — action paginasi membawa context | S-06 rerun Pass |
+| RMV-03 API 429 memicu NameError BSL-008 (sering) | GAP-LAMA | ✅ Difix (disetujui dev) — `_logger`, retry 429, UserError Inggris | S-11 Pass |
+| RMV-05 `TypeError` bila `libelle_voie` null | GAP-LAMA | Dicatat, belum diputuskan | demo CARREFOUR hal. 2 |
+| RMV-06 API dipanggil 2x pada Next pertama | GAP-LAMA | ✅ Difix (disetujui dev) — `default_get` + `force_save` | S-11 Pass |
 | RMV-04 "None" di alamat, judul dialog "Odoo" | GAP-LAMA (kosmetik) | Dicatat | S-04, S-05 |
 
 ## Ringkasan per Level
@@ -132,7 +148,7 @@
 | Level | Skenario | Jumlah |
 |---|---|---|
 | Smoke | S-01, S-02 | 2 |
-| Main Flow | S-03, S-04, S-07 | 3 |
+| Main Flow | S-03, S-04, S-07, S-11 | 4 |
 | Detail | S-05, S-08, S-10 | 3 |
 | Negative | S-06, S-09 | 2 |
 
@@ -140,7 +156,7 @@
 
 | Provenance | Jumlah | Skenario |
 |---|---|---|
-| `[DIKONFIRMASI]` | 9 | S-01..S-09 |
+| `[DIKONFIRMASI]` | 10 | S-01..S-09, S-11 |
 | `[HASIL-BACA]` | 1 | S-10 (ref Step 9) |
 | `[HASIL-BACA-MURNI]` | 0 | — |
 | `[PERLU-KEPUTUSAN]` | 0 (S-06 dieksekusi, keputusan fix di FINDINGS RMV-02) | — |
@@ -151,6 +167,6 @@ Digenerate di `human_qa/` (00_README + 01_SMOKE + 02_MAIN_FLOW + 03_DETAIL + 04_
 
 ## Verdict
 
-- [ ] ✅ Lulus
-- [x] ⚠️ **Lulus Bersyarat** — semua regresi migrasi sudah difix dan terverifikasi live (RMV-01); fitur inti berjalan di 20.0 dengan API live (S-01..S-05, S-07..S-09 Pass). **Satu skenario Negative FAIL karena bug bawaan 19.0 (RMV-02: Select setelah paginasi menimpa partner yang salah — korupsi data)**. Bukan regresi migrasi, tapi dampaknya tinggi → **butuh keputusan dev sebelum Step 11**: (a) terima sebagai known issue (port apa adanya), atau (b) izinkan fix minimal (action paginasi membawa `context` asal). Juga MF-03 (workaround, OPEN) dan RMV-03 (429 → NameError) menunggu keputusan.
+- [x] ✅ **Lulus** (2026-09-24, setelah paket perbaikan) — semua skenario live Pass (S-01..S-09, S-11) + S-10 `[HASIL-BACA — ref Step 9]`. RMV-01 (regresi) difix; RMV-02/03/06 (bug bawaan) difix atas persetujuan dev, pesan Inggris; `run-test.sh` 0 failed of 53. **Masih terbuka untuk Step 11:** MF-03 workaround (sign-off aturan tombol), RMV-04/RMV-05 (GAP-LAMA, belum diputuskan).
+- [ ] ⚠️ Lulus Bersyarat — (status sebelum paket perbaikan) semua regresi migrasi sudah difix dan terverifikasi live (RMV-01); fitur inti berjalan di 20.0 dengan API live (S-01..S-05, S-07..S-09 Pass). **Satu skenario Negative FAIL karena bug bawaan 19.0 (RMV-02: Select setelah paginasi menimpa partner yang salah — korupsi data)**. Bukan regresi migrasi, tapi dampaknya tinggi → **butuh keputusan dev sebelum Step 11**: (a) terima sebagai known issue (port apa adanya), atau (b) izinkan fix minimal (action paginasi membawa `context` asal). Juga MF-03 (workaround, OPEN) dan RMV-03 (429 → NameError) menunggu keputusan.
 - [ ] ❌ Ada kegagalan regresi

@@ -7,18 +7,20 @@
         <field name="name">siret.wizard.form</field>
         <field name="model">siret.wizard</field>
         <field name="arch" type="xml">
+            <!-- force_save: these read-only values must be sent when the wizard is saved, since
+                 default_get() no longer re-queries the API on save (FINDINGS.md RMV-06). -->
             <form>
                 <h2>
-                    <field name="result_count" readonly="1" /> Results Found </h2>
+                    <field name="result_count" readonly="1" force_save="1" /> Results Found </h2>
                 <div class="pagination-controls pagination-right"
                     style="display: flex; justify-content: flex-end; align-items: center;">
                     <button name="fetch_previous_page" type="object" string="Prev"
                         class="btn btn-secondary"
                         icon="arrow_back" />
                     <span class="page-count">
-                        <field name="page_number" readonly="1" class="oe_inline" /> / </span>
+                        <field name="page_number" readonly="1" force_save="1" class="oe_inline" /> / </span>
                     <span class="page-total">
-                        <field name="total_pages" readonly="1" class="oe_inline" />
+                        <field name="total_pages" readonly="1" force_save="1" class="oe_inline" />
                     </span>
                     <button name="fetch_next_page" type="object" class="btn btn-secondary"> Next <i
                             class="oi" data-icon="arrow_forward"></i>

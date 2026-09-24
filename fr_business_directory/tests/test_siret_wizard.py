@@ -208,10 +208,13 @@ class TestSiretWizard(TransactionCase):
         field = self.env['res.partner']._fields['social_reason']
         self.assertTrue(field.tracking)
 
-    def test_logger_undefined_nameerror_preserved_bug(self):
-        """AC-07-01 [PRESERVE-BUG] BSL-008 — malformed API response (missing siret) raises NameError, not a handled log."""
+    def test_malformed_result_is_logged_and_skipped(self):
+        """AC-07-01 — BSL-008 FIXED in 20.0 with dev approval (FINDINGS.md RMV-03): `_logger` was
+        never defined up to 19.0, so a result without name/siret raised NameError. It is now
+        logged as a warning and skipped, as the code intended."""
         bad_result = _result(nom_complet='', matching_etablissements=[])
         bad_result['siege']['siret'] = ''
-        with patch('requests.get', return_value=_mock_response([bad_result])):
-            with self.assertRaises(NameError):
-                self.env['siret.wizard'].with_context(active_id=self.partner.id).create({})
+        with patch('requests.get', return_value=_mock_response([bad_result])), \
+             self.assertLogs('odoo.addons.fr_business_directory.models.siret_wizard', level='WARNING'):
+            wizard = self.env['siret.wizard'].with_context(active_id=self.partner.id).create({})
+        self.assertFalse(wizard.result_ids)

@@ -11,4 +11,4 @@ Dibuat di Step 10 walaupun skenario dijalankan AI (Playwright MCP) — supaya de
 | `03_DETAIL.md` | Tampilan hasil, field Mark as Read | Sebelum rilis besar |
 | `04_NEGATIVE.md` | Select setelah paginasi (bug bawaan RMV-02), field tersembunyi | Minimal sekali sebelum rilis besar |
 
-**Catatan environment:** API `recherche-entreprises.api.gouv.fr` kadang membalas 429 (terlalu banyak request) → muncul dialog "Oops" (bug bawaan RMV-03). Tunggu ±10 detik lalu ulangi — itu bukan kegagalan checklist.
+**Catatan environment:** API `recherche-entreprises.api.gouv.fr` (gratis, dibatasi 7 panggilan/detik) kadang membalas 429. Sejak perbaikan RMV-03 modul menunggu & mencoba ulang otomatis; kalau tetap sibuk muncul pesan Inggris "The company directory service … is busy right now …" — tunggu sebentar lalu ulangi. Itu bukan kegagalan checklist. Dialog "Oops" dengan traceback TIDAK boleh muncul lagi (kecuali RMV-05, nama perusahaan tertentu).

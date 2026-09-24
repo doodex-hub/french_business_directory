@@ -1,9 +1,11 @@
 import logging
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import requests
 
 from lxml import etree
 
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import Form
 from odoo.tests.common import TransactionCase, tagged
 
@@ -205,3 +207,121 @@ class TestMigration20(TransactionCase):
         self.assertEqual(len(matching), 1)
         self.assertEqual(matching.siret, VALID_SIRET)
         self.assertEqual(matching.adresse, '10 rue de la Paix')
+
+
+def _mock_429(retry_after='0'):
+    resp = MagicMock()
+    resp.status_code = 429
+    resp.headers = {'Retry-After': retry_after}
+
+    def _raise():
+        raise requests.HTTPError('429 Client Error: Too Many Requests', response=resp)
+    resp.raise_for_status = _raise
+    return resp
+
+
+@tagged('post_install', '-at_install')
+class TestDirectoryApiFixes(TransactionCase):
+    """Post-migration fixes approved by the dev on 2026-09-24 (FINDINGS.md RMV-02, RMV-03, RMV-06):
+    behavior intentionally differs from 19.0 here."""
+
+    def setUp(self):
+        super().setUp()
+        self.partner = self.env['res.partner'].create({'name': 'ACME', 'is_company': True})
+        self.Wizard = self.env['siret.wizard'].with_context(active_id=self.partner.id)
+
+    # --- RMV-03: HTTP 429 / API errors ------------------------------------------------------
+
+    def test_429_is_retried_then_succeeds(self):
+        """A 429 is retried (honouring Retry-After, capped) and the next success is used."""
+        with patch('requests.get', side_effect=[_mock_429('3'), _mock_response([_result()])]) as mock_get, \
+             patch('time.sleep') as mock_sleep:
+            wizard = self.Wizard.create({})
+        self.assertEqual(mock_get.call_count, 2)
+        mock_sleep.assert_called_once_with(3.0)
+        self.assertEqual(len(wizard.result_ids), 1)
+
+    def test_retry_after_is_capped(self):
+        with patch('requests.get', side_effect=[_mock_429('120'), _mock_response([_result()])]), \
+             patch('time.sleep') as mock_sleep:
+            self.Wizard.create({})
+        mock_sleep.assert_called_once_with(5)
+
+    def test_429_persisting_shows_english_busy_message(self):
+        """Still 429 after the retries -> readable English UserError, no traceback/NameError."""
+        with patch('requests.get', side_effect=[_mock_429(), _mock_429(), _mock_429()]) as mock_get, \
+             patch('time.sleep'), \
+             self.assertRaises(UserError) as ctx, \
+             self.assertLogs('odoo.addons.fr_business_directory.models.siret_wizard', level='ERROR'):
+            self.Wizard.create({})
+        self.assertEqual(mock_get.call_count, 3)
+        self.assertIn('is busy right now', str(ctx.exception))
+
+    def test_connection_error_shows_english_unreachable_message(self):
+        with patch('requests.get', side_effect=requests.ConnectionError('no route')), \
+             self.assertRaises(UserError) as ctx, \
+             self.assertLogs('odoo.addons.fr_business_directory.models.siret_wizard', level='ERROR'):
+            self.Wizard.create({})
+        self.assertIn('could not be reached', str(ctx.exception))
+
+    def test_429_on_next_page_keeps_wizard_state(self):
+        """A failure on Next raises the readable error; the page is not changed."""
+        with patch('requests.get', return_value=_mock_response([_result()], total_pages=3)):
+            wizard = self.Wizard.create({})
+        with patch('requests.get', side_effect=[_mock_429(), _mock_429(), _mock_429()]), patch('time.sleep'), \
+             self.assertRaises(UserError), \
+             self.assertLogs('odoo.addons.fr_business_directory.models.siret_wizard', level='ERROR'):
+            with self.env.cr.savepoint():
+                wizard.fetch_next_page()
+        self.assertEqual(wizard.page_number, 1)
+
+    # --- RMV-06: no duplicate API call when the wizard is saved -------------------------------
+
+    def test_open_calls_api_once_and_save_does_not_call_it_again(self):
+        """Opening the dialog (default_get with result_ids) calls the API once; saving it like the
+        20.0 web client does (result_ids + force_save'd counters sent) does not call it again."""
+        with patch('requests.get', return_value=_mock_response([_result()], total_results=40, total_pages=2)) as mock_get:
+            defaults = self.Wizard.default_get(['result_ids', 'result_count', 'page_number', 'total_pages', 'partner_name'])
+        self.assertEqual(mock_get.call_count, 1)
+        with patch('requests.get') as mock_get:
+            wizard = self.Wizard.create({
+                'result_ids': [(6, 0, defaults['result_ids'][0][2])],
+                'result_count': defaults['result_count'],
+                'page_number': 1,
+                'total_pages': defaults['total_pages'],
+            })
+        mock_get.assert_not_called()
+        self.assertEqual(wizard.partner_name, 'ACME')
+        self.assertEqual(wizard.total_pages, 2)
+        self.assertEqual(len(wizard.result_ids), 1)
+
+    def test_wizard_view_sends_readonly_counters(self):
+        """The read-only counters are force_save'd so they reach create()."""
+        arch = self.env['siret.wizard'].get_view(self.env.ref('fr_business_directory.view_siret_wizard_form').id, 'form')['arch']
+        tree = etree.fromstring(arch)
+        for fname in ('result_count', 'page_number', 'total_pages'):
+            node = tree.xpath(f"//field[@name='{fname}']")[0]
+            self.assertEqual(node.get('force_save'), '1', fname)
+
+    # --- RMV-02: Select after pagination writes to the original partner -----------------------
+
+    def test_pagination_actions_keep_active_id(self):
+        with patch('requests.get', return_value=_mock_response([_result()], total_pages=3)):
+            wizard = self.Wizard.create({})
+            actions = [wizard.fetch_next_page(), wizard.fetch_previous_page(), wizard.fetch_previous_page()]
+            wizard.page_number = wizard.total_pages
+            actions.append(wizard.fetch_next_page())
+        for action in actions:
+            self.assertEqual(action['context'].get('active_id'), self.partner.id)
+
+    def test_select_after_pagination_writes_original_partner(self):
+        """Replays the web client: the reloaded dialog uses the returned action's context."""
+        other = self.env['res.partner'].create({'name': 'MUST NOT CHANGE', 'street': 'Jl. Sudirman 1'})
+        with patch('requests.get', return_value=_mock_response([_result(nom_complet='PAGE TWO CO')], total_pages=3)):
+            wizard = self.Wizard.create({})
+            action = wizard.fetch_next_page()
+        reloaded = self.env['siret.wizard'].with_context(**action['context']).browse(action['res_id'])
+        row = reloaded.result_ids[0]
+        row.with_context(**action['context']).select_siret()
+        self.assertEqual(self.partner.name, 'PAGE TWO CO')
+        self.assertEqual(other.name, 'MUST NOT CHANGE')

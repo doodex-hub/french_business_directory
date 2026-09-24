@@ -85,3 +85,19 @@
 - [x] ✅ Lulus — tidak ada 🔴, lanjut ke step 9
 
 **Guidelines read:** Manifest; Imports; Naming and model layout; Recordsets, domains and context; Transactions and exceptions; Access rights; Views, actions and data records; Anchor view inheritance on names, never on position; Tests; odoo-security SKILL (access rows).
+
+---
+
+## Addendum 2026-09-24 — review paket perbaikan pasca-Step 10 (RMV-01/02/03/06, disetujui dev)
+
+Diff: `views/partner.xml`, `views/siret_wizard_views.xml`, `models/siret_wizard.py`, `tests/test_migration_20.py`, `tests/test_siret_wizard.py`. Guideline yang dipakai: Imports, Translate only static literals, Transactions and exceptions, Views/Anchor, Tests.
+
+| ID | Severity | Kategori | Issue | Keputusan |
+|---|---|---|---|---|
+| CR-05 | 🔵 Info | Performance (*judgement*) | `time.sleep()` di dalam request worker saat 429 — memblok worker maks. 2 × 5 dtk = 10 dtk | Diterima: dibatasi ketat, hanya saat API membalas 429, alternatifnya error langsung ke user |
+| CR-06 | 🔵 Info | Translate | Pesan `UserError` memakai `_()` dengan literal statis (Inggris) — sesuai guideline, bisa diterjemahkan lewat `i18n/fr.po` nanti | OK |
+| CR-07 | 🔵 Info | Transactions | `UserError` menggantikan `except` yang menelan error; transaksi di-rollback oleh framework (terbukti `test_429_on_next_page_keeps_wizard_state`) | OK |
+| CR-08 | 🔵 Info | Views | `force_save="1"` pada field read-only wizard — pola native untuk nilai read-only yang harus tersimpan | OK |
+| CR-09 | 🔵 Info | Security | `'context': dict(self.env.context)` pada action — hanya meneruskan context pemanggil sendiri (tidak ada `sudo`/eskalasi) | OK |
+
+Verdict addendum: 0 🔴 · 0 🟡 · 5 🔵 — gate Step 8 tetap lulus. `run-test.sh`: 0 failed, 0 error of 53.
