@@ -1,0 +1,110 @@
+# Findings — french_business_directory (migrasi 19.0 → 20.0)
+
+**Modul:** french_business_directory (`fr_business_directory`, `personal_email_usage`)
+**Migrasi:** 19.0 → 20.0
+**Terakhir update:** 2026-09-24
+
+> Skema & aturan: `migration-tool/templates/FINDINGS.md`. ID `MF-NNN` di file ini independen dari
+> `MF-NNN` project 18→19 (`doc-dev/migration_18.0_19.0/doc/FINDINGS.md`) — kalau merujuk yang lama,
+> ditulis eksplisit "MF-03 (18→19)".
+>
+> Semua keputusan di bawah yang bertanda "Keputusan AI" diambil sesuai `USAGE_GUIDE.md` "Eksekusi
+> Berkelanjutan di CLI" (ada rekomendasi jelas + risiko rendah → AI pilih, dokumentasikan, lanjut).
+> Dev tetap bisa mengoreksi kapan saja; entry yang genuinely butuh mata manusia ditandai
+> `[PERLU-KEPUTUSAN]` dan diteruskan ke Step 10/11.
+
+---
+
+## Ringkasan
+
+| ID | Judul | Ditemukan di Step | Tag | Prioritas | Status |
+|---|---|---|---|---|---|
+| MF-01 | `ir.model.access` (model + CSV) dihapus di 20.0, diganti `ir.access` / `ir.access.csv` | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` | Tinggi (install-blocking `fr_business_directory`) | Keputusan AI: konversi format native — diterapkan Step 6 |
+| MF-02 | `res.partner.company_registry` dihapus dari base 20.0 → SIRET pindah ke JSON `additional_identifiers['FR_SIRET']` (tervalidasi) | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` | Kritis (fitur inti "Select") | Keputusan AI: tulis `FR_SIRET` via `additional_identifiers`, validasi native dipertahankan — deviasi edge-case dicatat |
+| MF-03 | `base.view_partner_form` 20.0 dirombak: `<field id="company" name="name">` hilang, `is_company` jadi computed dari VAT | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` + `[PERLU-KEPUTUSAN]` (visibilitas tombol) | Tinggi (install-blocking + UX tombol) | Keputusan AI: xpath baru, ekspresi `is_company != True` dipertahankan; efek semantik diverifikasi Step 9, konfirmasi visual Step 10 |
+| MF-04 | package `odoo.osv` dihapus total di 20.0 → `from odoo.osv import expression` (tak terpakai) ImportError | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` | Tinggi (install-blocking `personal_email_usage`) | Keputusan AI: hapus baris import itu saja |
+| MF-05 | `self._cr` / `self._context` masih deprecated (bukan dihapus) di 20.0 | Step 2 | `[DIWARISI-SOURCE]` (informasional) | Rendah | Tidak diubah (konsisten keputusan MF-04 18→19) |
+| MF-06 | Test existing terikat ke `company_registry` + data SIRET dummy yang mungkin tidak lolos validasi Luhn 20.0 | Step 2 | `[GAP-MIGRASI]` (test) | Sedang | Keputusan AI: sesuaikan assertion + data test, tanpa mengubah intent test |
+| MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
+
+---
+
+## Detail
+
+### MF-01 — `ir.model.access` dihapus di 20.0, diganti `ir.access`
+**Ditemukan di:** Step 1 pre-scan, dikonfirmasi Step 2 (2026-09-24)
+**Tag:** `[GAP-MIGRASI]`
+**Ref:** `DIFF-01`, `01b_BASELINE_SPEC.md` Bagian A §2 (ACL), BSL-022; knowledge `19-to-20.md` baris `ir.access.csv`
+**Lokasi:** `fr_business_directory/security/ir.model.access.csv`, `fr_business_directory/__manifest__.py:22`; `personal_email_usage/security/ir.model.access.csv` (dead file, tidak dimuat)
+**Deskripsi:** Di 20.0 tidak ada lagi model `ir.model.access` (grep `odoo20/odoo` — nol definisi; `odoo/orm/models.py:3655` memakai `self.env['ir.access']`). `convert_csv_import()` (`odoo20/odoo/tools/convert.py:740`) menurunkan nama model dari nama file (`ir.model.access.csv` → `env['ir.model.access']`) → KeyError saat install. Native menyediakan konverter resmi `odoo20/odoo/upgrade_code/19.4-00-ir-access.py`: header baru `id,name,model_id,group_id/id,operation,domain`, `model_id` berisi NAMA model (bukan xmlid `model_*`), `operation` = subset huruf `crud`, file `security/ir.access.csv`, manifest `data` diganti.
+**Dampak:** tanpa konversi, `fr_business_directory` gagal install di 20.0. `personal_email_usage` TIDAK terdampak (baris manifest-nya dikomentari sejak 17.0 — BSL-022).
+**Rekomendasi / Keputusan AI:** tulis ulang persis seperti output konverter native: 3 baris, `base.group_user`, `operation=crud`, domain kosong (tidak ada `ir.rule`, jadi tidak ada semantik OR-domain yang berubah). Hapus `ir.model.access.csv` lama dari `fr_business_directory`, ganti entri manifest. Dead file `personal_email_usage/security/ir.model.access.csv` dibiarkan apa adanya (tidak dimuat, konsisten BSL-022 — konverter native juga mengabaikannya karena tidak ada di manifest `data`).
+
+---
+
+### MF-02 — `res.partner.company_registry` dihapus → SIRET di `additional_identifiers['FR_SIRET']`
+**Ditemukan di:** Step 1 pre-scan, dikonfirmasi Step 2 (2026-09-24)
+**Tag:** `[GAP-MIGRASI]`
+**Ref:** `DIFF-02`, BSL-004, BSL-006; MF-02 (18→19) — perubahan KEDUA berturut-turut pada field target SIRET (18: `l10n_fr.siret` → 19: `base.company_registry` → 20: `base.additional_identifiers['FR_SIRET']`)
+**Lokasi:** `fr_business_directory/models/siret_wizard.py:260,275` (`siret.wizard.result.select_siret`), `:354,369` (`matching.etablissement.select_siret`)
+**Deskripsi:** 20.0 menghapus field `company_registry` (dan `company_registry_label/placeholder`, `same_company_registry_partner_id`) dari `base` — nol match `company_registry` di `odoo20/odoo/addons/base`. Penggantinya: `res.partner.additional_identifiers = fields.Json(copy=False)` (`odoo20/odoo/addons/base/models/res_partner.py:330`) berisi dict `{KEY: value}`; key Perancis `FR_SIRET` (label "SIRET", `category='EN'`, `validation_function=fr_siret.validate` (stdnum, Luhn), `odoo20/odoo/tools/partner_identifiers.py:645`) terdefinisi di BASE (tidak butuh `l10n_fr_account`). `write()` memanggil `_clean_additional_identifiers(vals)` (`res_partner.py:963,1826-1848`): drop key tak dikenal, **raise `ValidationError` untuk nilai tak valid**, normalisasi, dan **deduksi otomatis `FR_SIREN`** (9 digit pertama) dari `FR_SIRET`. `l10n_fr` 20.0 juga menghapus `views/res_partner_views.xml` (relabel `company_registry` → "Siren/Siret"); tampilan SIRET di form partner kini lewat widget identifier native.
+**Dampak:** kode 19.0 `partner.write({'company_registry': ...})` → error field tak dikenal → tombol "Select" (fitur inti) gagal total.
+**Opsi yang dipertimbangkan:**
+1. **(DIPILIH)** Tulis `additional_identifiers` di dalam `write()` yang SAMA: ambil JSON existing, buang key `FR_SIRET`+`FR_SIREN` lama, set `FR_SIRET = self.siret` kalau truthy (kalau falsy — setara 19.0 menulis `''` — key dibiarkan terhapus). Validasi native TETAP berlaku. Risiko: rendah — SIRET dari API gouv.fr adalah SIRET resmi (lolos Luhn); `FR_SIREN` ikut terisi (side effect native baru, konsisten dengan SIRET); identifier lain partner (mis. VAT-derived) TIDAK disentuh (setara 19.0 yang hanya menulis satu kolom).
+2. Sama seperti 1 tapi bypass validasi (`with_context(no_vat_validation=True)`) supaya nilai APAPUN diterima seperti Char 19.0. Ditolak: nilai tak valid tersimpan di JSON tervalidasi akan membuat edit identifier berikutnya di UI gagal `_check_additional_identifiers` — deviasi yang lebih buruk & tersembunyi.
+3. `_set_additional_identifier('FR_SIRET', v)` sebagai write kedua. Ditolak: dua write terpisah (beda dari 19.0 satu write), meninggalkan `FR_SIREN` basi saat SIRET dikosongkan.
+**Deviasi yang tidak terhindarkan (dicatat, bukan disembunyikan):** (a) SIRET tidak valid (bukan Luhn) → `ValidationError` di 20.0, di 19.0 tersimpan apa adanya; (b) `FR_SIREN` terisi otomatis. Keduanya perilaku platform 20.0 atas penyimpanan identifier, bukan perubahan business rule "Select overwrite SIRET".
+**Keputusan pemilik modul:** *(Keputusan AI: opsi 1 — bisa dikoreksi dev)*
+
+---
+
+### MF-03 — Form partner 20.0 dirombak: `id="company"` hilang, `is_company` computed dari VAT
+**Ditemukan di:** Step 1 pre-scan, dikonfirmasi Step 2 (2026-09-24)
+**Tag:** `[GAP-MIGRASI]` (struktur xpath — wajib) + `[PERLU-KEPUTUSAN]` (efek semantik visibilitas tombol)
+**Ref:** `DIFF-03`, BSL-001, BSL-025
+**Lokasi:** `fr_business_directory/views/partner.xml:10`
+**Deskripsi:**
+1. `base.view_partner_form` 20.0 (`odoo20/odoo/addons/base/views/res_partner_views.xml:99-135`) hanya punya SATU field nama di header: `<h1><field options="{'line_breaks': False}" widget="text" class="text-break d-block" name="name" default_focus="1" placeholder="Name (company or person)" required="type == 'contact'"/></h1>` — tidak ada lagi `id="company"`/`id="individual"` dan radio `company_type`. xpath `<field id="company" name="name" position="replace">` → install error ("Element ... cannot be located in parent view").
+2. `is_company` 20.0 = `fields.Boolean(compute='_compute_is_company', store=True)` (`res_partner.py:366`), `@api.depends('has_vat', 'commercial_partner_id')` → `commercial_partner_id == partner and has_vat` (`:944-955`). Tidak lagi di-set user lewat radio. Action Contacts memberi `context={'default_is_company': True}` (`odoo20/addons/contacts/views/contact_views.xml:59`) — nilai default yang dilindungi saat create, lalu dihitung ulang begitu `vat`/`parent_id` berubah.
+3. Kalau replace dilakukan apa adanya (div pengganti ber-`invisible="is_company != True"`), partner non-company di 20.0 akan kehilangan field nama sama sekali (di 19.0 masih ada field `individual` terpisah).
+**Keputusan AI (bagian struktur, wajib):** target xpath `//h1/field[@name='name']` (satu-satunya `h1` di view itu), `position="replace"` dengan `div` flex nowrap (style identik 19.0) yang berisi `$0` (field nama native 20.0 apa adanya, SELALU tampil) + tombol "Business Directory" (atribut identik 19.0, `invisible="is_company != True"`). Div TIDAK diberi `invisible` — supaya individu tetap punya field nama (setara 19.0 di mana individu memakai field native).
+**Bagian yang butuh mata manusia (`[PERLU-KEPUTUSAN]`):** ekspresi visibilitas tombol dipertahankan identik (`is_company != True`), tapi ARTI `is_company` berubah di platform 20.0 (company = entitas komersial sendiri + punya VAT valid, atau default `True` dari action Contacts sampai VAT/parent berubah). Kemungkinan efek: company tanpa VAT yang dibuat di luar action Contacts, atau yang VAT-nya dikosongkan, tidak lagi melihat tombol. Diverifikasi empiris di Step 9 (test `Form`), dan visual di Step 10. Kalau dev ingin tombol tetap muncul untuk company tanpa VAT, opsi alternatif: `invisible="parent_id"` (tampil untuk semua entitas komersial) — itu PERUBAHAN business rule, butuh persetujuan eksplisit dev.
+
+---
+
+### MF-04 — `odoo.osv` dihapus total di 20.0
+**Ditemukan di:** Step 1 pre-scan (2026-09-24)
+**Tag:** `[GAP-MIGRASI]`
+**Ref:** `DIFF-04`, BSL-026
+**Lokasi:** `personal_email_usage/models/mail.py:11`
+**Deskripsi:** `odoo20/odoo/osv/` tidak ada (ls → No such file). `from odoo.osv import expression` → `ModuleNotFoundError` saat import modul → install-blocking. Simbol `expression` tidak dipakai di mana pun di file itu.
+**Keputusan AI:** hapus baris import itu SAJA. Import tak terpakai lain (`requests`, `urllib.parse`, `re`, dst — semuanya masih ada di 20.0) dibiarkan (port kode, bukan cleanup).
+
+---
+
+### MF-05 — `self._cr` / `self._context` masih deprecated (belum dihapus) di 20.0
+**Ditemukan di:** Step 2 (2026-09-24)
+**Tag:** `[DIWARISI-SOURCE]` (informasional)
+**Ref:** BSL-027, BSL-030, MF-04 (18→19)
+**Lokasi:** `personal_email_usage/models/mail.py:138`; `fr_business_directory/models/siret_wizard.py:24,245,251,329,341`
+**Deskripsi:** `odoo20/odoo/orm/models.py:5388-5401` — properti `_cr`/`_uid`/`_context` masih ada dengan `@deprecated("Deprecated since 19.0 ...")`. Tetap berfungsi, hanya `DeprecationWarning`.
+**Keputusan:** tidak diubah (bukan wajib kompatibilitas; konsisten keputusan 18→19). Kandidat carry-over ke migrasi 20→21 kalau dihapus di sana.
+
+---
+
+### MF-06 — Penyesuaian test existing untuk 20.0
+**Ditemukan di:** Step 2 (2026-09-24)
+**Tag:** `[GAP-MIGRASI]` (test)
+**Ref:** MF-02, MF-03, `fr_business_directory/tests/test_siret_wizard.py`
+**Lokasi:** `test_siret_wizard.py:19,53-56,123-136`
+**Deskripsi:** `test_select_result_overwrites_partner` meng-assert `self.partner.company_registry` (field tak ada di 20.0). Data dummy `_siege()['siret'] = '12345678900012'` belum tentu lolos `fr_siret.validate` (Luhn) → `select_siret` akan `ValidationError` di 20.0. Fixture `setUp` membuat partner dengan `'is_company': True` (field computed 20.0 — native test 20.0 sendiri masih memakai pola ini, `odoo20/odoo/addons/base/tests/test_res_partner.py:813`).
+**Keputusan AI:** assertion → `self.partner._get_additional_identifier('FR_SIRET')`; data dummy siret diganti SIRET yang valid Luhn (hanya kalau yang lama terbukti tidak valid di G1); intent test tidak berubah. Ditambah test baru untuk mengunci deviasi MF-02 (SIRET tak valid → `ValidationError`, `FR_SIREN` terdeduksi, identifier lain tidak tersentuh) dan MF-03 (struktur view + nilai `is_company` pada partner baru via `Form`).
+
+---
+
+### MF-07 — Aset store branch rilis `19.0` tidak di-port
+**Ditemukan di:** Step 1 / conditioning (2026-09-24)
+**Tag:** `[PERLU-KEPUTUSAN]` (di luar port kode)
+**Ref:** `CLAUDE.md` open item conditioning, `01a_MIGRATION_INTAKE.md` Ringkasan #1
+**Lokasi:** `origin/19.0` — 13 commit tidak ada di `migration/19.0` (`00f78e7` "cleaning" … `bebaf14`), 137 file berbeda di `static/description/**` kedua addon (banner.png → banner.gif ~23MB, icon.png baru, folder `assets/` baru, `index.html` ditulis ulang) + fix key `images` manifest; `origin/19.0` juga TIDAK punya folder `tests/` `personal_email_usage` (MF-04 18→19).
+**Keputusan pemilik modul:** ✅ **Dev 2026-09-24: TIDAK di-port** — baseline = `migration/19.0` HEAD apa adanya. Kalau aset store dibutuhkan di rilis 20.0, itu kerja terpisah (merge/cherry-pick oleh dev, di luar migrasi ini).
