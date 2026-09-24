@@ -84,3 +84,7 @@ Environment: Odoo 20.0 from source (`D:\Kuncoro\doodex\repo\odoo20`, `version_in
 
 - [x] ✅ Semua AC prioritas Unit/Integration pass — **siap Step 10**, TETAPI Step 10 (QA browser live) **TIDAK dimulai**: STOP wajib dari dev (slot Step 10 lintas-repo). Menunggu dev memberi giliran.
 - Keputusan dev yang masih terbuka (tidak memblokir Step 9, wajib sebelum Step 11): **MF-03** (visibilitas tombol untuk company tanpa VAT), konfirmasi opsi MF-02 (validasi SIRET native).
+
+## Rerun setelah MF-03 workaround (2026-09-24)
+
+`./run-test.sh odoo fbd_test_20 fr_business_directory,personal_email_usage` → **0 failed, 0 error(s) of 43 tests** (41 test modul + 2 suite JS native), 43 baris `Starting <Class>.test_*`. Test baru: `test_button_visibility_workaround_mf03`. Gate Step 9 tetap LULUS; MF-03 tetap OPEN (workaround).

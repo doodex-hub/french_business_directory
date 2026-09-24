@@ -70,7 +70,8 @@ class TestMigration20(TransactionCase):
         self.assertEqual(len(buttons), 1)
         button = buttons[0]
         self.assertEqual(button.get('string'), 'Business Directory')
-        self.assertEqual(button.get('invisible'), 'is_company != True')
+        # MF-03 workaround (dev-approved 2026-09-24): 19.0 'is_company != True' -> 'parent_id'
+        self.assertEqual(button.get('invisible'), 'parent_id')
         wrapper = button.getparent()
         self.assertEqual(wrapper.tag, 'div')
         self.assertIsNone(wrapper.get('invisible'))
@@ -83,23 +84,39 @@ class TestMigration20(TransactionCase):
     def test_new_partner_form_contacts_context_is_company(self):
         """AC-01-02 [characterization, MF-03] — is_company (drives the button visibility) on a new
         partner form opened like the Contacts action (default_is_company=True), no VAT: in the
-        form before save, after save, and after a VAT is set then removed."""
+        form after save, and after a VAT is set then removed (kept as evidence for MF-03, which
+        still documents WHY the 19.0 condition could not be kept)."""
         form = Form(self.env['res.partner'].with_context(default_is_company=True))
         form.name = 'NEW FRENCH CO'
-        in_form = form.is_company
         partner = form.save()
         after_save = partner.is_company
         partner.vat = 'FR23334175221'
         with_vat = partner.is_company
         partner.vat = False
         vat_removed = partner.is_company
-        observed = (in_form, after_save, with_vat, vat_removed)
-        _logger.info("MF-03 is_company (form, saved, with VAT, VAT removed) = %s", observed)
-        # Observed on 20.0 (G1 #6, 2026-09-24): True in the unsaved form (default_is_company),
+        observed = (after_save, with_vat, vat_removed)
+        _logger.info("MF-03 is_company (saved, with VAT, VAT removed) = %s", observed)
+        # Observed on 20.0 (G1 #6, 2026-09-24): True in the unsaved form (default_is_company) —
+        # no longer readable here since the MF-03 workaround view does not reference is_company —
         # recomputed to False on save because there is no VAT (has_vat), True once a VAT is set,
         # False again when it is removed -> the button disappears after save for a company
         # without VAT. Recorded as MF-03 decision point, not "fixed" here.
-        self.assertEqual(observed, (True, False, True, False))
+        self.assertEqual(observed, (False, True, False))
+
+    def test_button_visibility_workaround_mf03(self):
+        """AC-01-01 [MF-03 workaround] — the button condition `invisible="parent_id"` keeps the
+        button for a SAVED company without VAT (is_company False in 20.0, the blocker case) and
+        still hides it for child contacts, as 19.0 did."""
+        form = Form(self.env['res.partner'].with_context(default_is_company=True))
+        form.name = 'SAVED CO WITHOUT VAT'
+        company = form.save()
+        self.assertFalse(company.is_company, "20.0 computes is_company False without VAT")
+        self.assertFalse(company.parent_id, "button visible: invisible='parent_id' is falsy")
+        child = self.env['res.partner'].create({'name': 'Employee', 'parent_id': company.id})
+        self.assertTrue(child.parent_id, "button hidden for child contacts")
+        # the wizard itself opens from the saved VAT-less company
+        action = company.siret_wizard()
+        self.assertEqual(action['context'], {'active_id': company.id})
 
     def test_siret_wizard_action(self):
         """AC-01-03 — the button action opens siret.wizard in a dialog with active_id in context."""

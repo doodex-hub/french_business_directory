@@ -28,9 +28,9 @@ Then masing-masing tepat satu record grup `base.group_user`, `operation = 'crud'
 ## AC-01 — Tombol & Buka Wizard
 
 **AC-01-01** `[COMPAT-FIX WAJIB]` (verifies `BSL-001`, `BSL-025`; `DIFF-03`, `MF-03`)
-Given kontak dengan `is_company = True`
+Given kontak TANPA parent (19.0: kontak dengan `is_company = True`)
 When form partner dibuka
-Then field nama DAN tombol "Business Directory" tampil sebaris di header; kontak dengan `is_company = False` menampilkan field nama TANPA tombol. **Catatan 20.0:** `is_company` sekarang dihitung platform (entitas komersial sendiri + punya VAT, atau default `True` dari action Contacts) — ekspresi visibilitas identik 19.0; efek semantiknya diverifikasi Step 9 (`Form`) dan dikonfirmasi visual Step 10 (MF-03 `[PERLU-KEPUTUSAN]`).
+Then field nama DAN tombol "Business Directory" tampil sebaris di header. **Update 2026-09-24 (MF-03 workaround, disetujui dev):** tombol tampil untuk semua partner TANPA parent (`invisible="parent_id"`), termasuk company tanpa VAT; kontak anak tidak mendapat tombol. Deviasi terdokumentasi dari 19.0 (19.0: hanya `is_company`); MF-03 tetap OPEN. **Alasan:** `is_company` 20.0 dihitung platform (entitas komersial sendiri + punya VAT) sehingga ekspresi 19.0 membuat company tanpa VAT kehilangan tombol setelah save. Konfirmasi visual Step 10.
 
 **AC-01-02** `[BARU-20.0]` (verifies `BSL-001`)
 Given form partner baru dibuka lewat action Contacts (`default_is_company: True`), tanpa VAT

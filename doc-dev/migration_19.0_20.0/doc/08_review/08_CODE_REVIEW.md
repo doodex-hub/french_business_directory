@@ -49,7 +49,7 @@
 |---|---|---|---|---|
 | AC-00-01 | Install bersih | ✅ | `-i` kedua addon → load `ir.access.csv` → views → tests; G1 #7 0 ERROR | |
 | AC-00-02 | ACL crud | ✅ | CSV → `ir.access` (model_id by name) → test `has_access` 4 operasi user internal | |
-| AC-01-01 | Tombol + nama | ✅ (struktur) / ⚠️ semantik | form → `<h1><div flex><field name/><button invisible="is_company != True"/></div></h1>`; individu: div tampil, tombol hidden | Semantik `is_company` = MF-03 (keputusan dev) |
+| AC-01-01 | Tombol + nama | ✅ struktur / 🟡 workaround | form → `<h1><div flex><field name/><button invisible="parent_id"/></div></h1>`; partner tanpa parent (termasuk company tanpa VAT): tombol tampil; kontak anak: tersembunyi | Workaround MF-03 disetujui dev 2026-09-24 (revisi pasca-gate, finding tetap OPEN) |
 | AC-01-02 | is_company form baru | ✅ (characterization) | Form context Contacts → True; save tanpa VAT → False | Nilai dikunci test; bahan keputusan MF-03 |
 | AC-01-03 | action | ✅ | `siret_wizard()` tidak berubah | |
 | AC-02-01, AC-03-* | fetch & paginasi | ✅ | kode `SiretWizard` tidak disentuh; test existing PASS | |

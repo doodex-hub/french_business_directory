@@ -161,3 +161,11 @@ Mode C (AI jalankan, dikonfirmasi dev di intake 2026-09-24). Environment: `docke
 ## Kontribusi ke Knowledge Base
 
 - [x] Ada — `migration-records/french_business_directory_19.0_20.0/SUMMARY.md`: CAND-02 diperkuat dengan nilai `is_company` teramati; CAND-05 (gotcha `$0` di `position="replace"`).
+
+## [Fase C1 — revisi] MF-03 workaround (2026-09-24, keputusan dev)
+
+- **Scope:** `fr_business_directory/views/partner.xml`, `fr_business_directory/tests/test_migration_20.py`
+- **Aksi:** tombol `invisible="is_company != True"` → `invisible="parent_id"` (+ komentar alasan di XML). Test: assert atribut baru; test baru `test_button_visibility_workaround_mf03`; test characterization `is_company` disesuaikan (nilai "di form belum save" tidak bisa dibaca lagi karena view tidak lagi merujuk `is_company` — nilai itu sudah terbukti di G1 #6).
+- **Riwayat run:** #8 — 1 failed of 43 (`'is_company' was not found in the view` di test characterization, akibat langsung workaround); #9 — ✅ 0 failed, 0 error of 43.
+- **Secara eksplisit TIDAK dilakukan:** tidak ada perubahan lain di view/model; MF-03 tidak ditutup.
+- **Status:** ✅ Diterapkan — finding tetap OPEN
