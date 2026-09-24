@@ -58,7 +58,7 @@
 | AC-04-04 | SIRET invalid | ✅ (deviasi terdokumentasi) | write → `_validate_identifier(..., 'error')` → `ValidationError` → dialog error ke user, partner tidak berubah | MF-02 (a) |
 | AC-04-05 | identifier lain utuh, SIREN deduksi | ✅ | helper menyalin dict, pop FR_SIRET/FR_SIREN → `_clean` deduksi SIREN baru | MF-02 (b) |
 | AC-05-*, AC-06-01, AC-07-* | status, compute, tracking, bug preserved | ✅ | kode tidak disentuh; test existing PASS | |
-| AC-08-*..AC-11-* | fetchmail/message_new | ✅ | hanya baris import dihapus; 15 test P PASS; entry point cron/tombol 20.0 memanggil `_fetch_mail` (02 §0e) | |
+| AC-08-*..AC-11-* | fetchmail/message_new | ✅ | hanya baris import dihapus; 14 test P PASS; entry point cron/tombol 20.0 memanggil `_fetch_mail` (02 §0e) | |
 
 ## D. Cek Khusus Migrasi — P1 Fidelity
 

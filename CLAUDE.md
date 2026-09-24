@@ -122,13 +122,14 @@ Cross-cutting, LATEN: `HOTFIX_REVIEW.md` + `HOTFIX_LOG.md` di root `doc/` — di
 
 ## Status saat ini
 
-**Step 0 — Conditioning selesai (2026-09-24).** Branch `migration/20.0` dibuat dari `migration/19.0` (HEAD `35c4e25`, "MF-04: port 6 email test-gap tests carried over from project 17->18"). `.claude/settings.json` diperbarui (deny list native 19/20, `git show` diizinkan, `_status` template DRAFT lama diganti), CLAUDE.md ini ditulis ulang, skeleton `doc-dev/migration_19.0_20.0/doc/` dibuat (folder kosong + `.gitkeep`). **Step 1 Intake belum mulai** — sesi eksekusi berikutnya mulai dari Step 1.
+**Step 1-9 SELESAI (2026-09-24) — Step 9 gate LULUS. ⏸️ STOP WAJIB sebelum Step 10**: dev menahan Step 10 (QA browser live) karena slot lintas-repo terbatas (maks. 2 repo kecil bersamaan ATAU 1 repo besar sendirian; kontensi browser-tool/Docker MF-46). **Jangan mulai Step 10 sampai dev eksplisit bilang giliran repo ini.**
 
-Open item untuk Step 1 intake (dicatat saat conditioning, belum diputuskan):
-- CLAUDE.md lama menyebut branch hasil migrasi `migration/19.0_target`, tapi nama aktual branch-nya `migration/19.0` (lokal = `origin/migration/19.0`). Semua rujukan di file ini sudah pakai nama aktual.
-- `migration/19.0` berisi 2 commit SETELAH Step 11 18→19 ditutup (`7bd83fb`): `d2c84b6` (rekonsiliasi `doc-dev/migration_17.0_18.0` + `doc-dev/backfill`) dan `35c4e25` (MF-04, 6 test email). Baseline 19.0 project ini = HEAD termasuk kedua commit itu.
-- Branch rilis `19.0`/`staging/19.0` DIVERGEN dari `migration/19.0`: punya 8 commit yang tidak ada di sini (commit "cleaning" + aset store kedua addon: `banner.gif`, `icon.png`, folder `assets`, `index.html`, fix key `images` di manifest), dan tidak punya 2 commit di atas. Putuskan di intake apakah aset store perlu di-port ke 20.0.
-- **Prasyarat go-live yang belum pernah diverifikasi di 19.0** (dari `doc-dev/migration_18.0_19.0/doc/11_uat/11_UAT_CHECKLIST.md`): klik manual tombol "Business Directory" + jalankan scheduled action fetchmail manual di browser sungguhan — baseline visual 19.0 belum pernah dilihat mata manusia.
+Ringkasan hasil (detail: `doc-dev/migration_19.0_20.0/doc/`):
+- 4 breaking change 20.0 ditangani: `ir.model.access`→`security/ir.access.csv` (MF-01), `company_registry`→`additional_identifiers['FR_SIRET']` (MF-02), form partner dirombak → dua xpath (`$0` wrapper + tombol) (MF-03), `odoo.osv` dihapus (MF-04). Manifest `20.0.1.0.0`.
+- Step 9 (`docker-env/run-test.sh odoo fbd_test_20 fr_business_directory,personal_email_usage`): **0 failed, 0 error of 42 tests** (40 test modul + 2 suite JS native), audit 9a 0 stub.
+- **Keputusan dev yang masih terbuka (wajib sebelum Step 11):** MF-03 ESCALATION — di 20.0 `is_company` computed dari VAT → tombol "Business Directory" HILANG setelah save untuk company tanpa VAT (terbukti test `Form`). Implementasi sekarang = ekspresi 19.0 dipertahankan. Juga konfirmasi pilihan MF-02 (validasi SIRET native → SIRET tidak valid ditolak `ValidationError`).
+- Step 10 nanti: server interaktif lewat `docker-env/` (port 8196, `MSYS_NO_PATHCONV=1 docker compose run -d --name fbd20_g2 -p 8196:8069 odoo python3 /odoo20/odoo-bin -d fbd_test_20 ... --http-interface=0.0.0.0`, lihat `06c` G2), engine AI-interaktif = Playwright MCP. Prioritas skenario: AC-01-01/02 (tombol & MF-03), AC-04 (Select → SIRET tampil di identifier partner), API gouv.fr live.
+- Aset store branch rilis `19.0` sengaja TIDAK di-port (MF-07, keputusan dev).
 
 > AI: update bagian ini sendiri di akhir tiap sesi kerja, supaya sesi berikutnya tahu persis harus lanjut dari mana tanpa tanya ulang ke user.
 
@@ -146,8 +147,8 @@ Ringkasan cepat — detail lengkap tiap step ada di field `Status:` di header ma
 | 6 | Code Migration | kode 2 addon + `06c_IMPLEMENTATION_LOG.md` | ✅ Selesai (G1 42/42, G2 smoke) | — (disiplin per-fase A1→G2) |
 | 7 | Data Migration Scripts | `07_DATA_MIGRATION_PLAN.md` + script — cuma kalau upgrade instance | — N/A (port kode saja, dikonfirmasi dev) | — |
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Lulus (0 🔴, 0 🟡, 4 🔵) | ✔️ Lulus 2026-09-24 |
-| 9 | Dev Testing | `09_DEV_TESTING.md` | ⬜ Belum mulai | — |
-| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⬜ Belum mulai | — |
+| 9 | Dev Testing | `09_DEV_TESTING.md` | ✔️ Lulus (42/42, 0 stub) | ✔️ Lulus 2026-09-24 |
+| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⏸️ Siap, menunggu slot dari dev (STOP wajib) | — |
 | 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
 
 Legenda status: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.

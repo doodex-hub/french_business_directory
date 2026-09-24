@@ -70,7 +70,7 @@ N/A — tidak ada JS, controller, maupun assets (01a §2b).
 
 1. Install & startup kedua addon bersamaan (G1) — manifest, ACL `ir.access`, view inherit, import.
 2. Flow inti `fr_business_directory`: buka wizard → hasil → Select → partner terisi (`FR_SIRET`).
-3. Fetchmail override via `_fetch_mail` (15 test existing).
+3. Fetchmail override via `_fetch_mail` (14 test existing).
 4. Semantik `is_company`/visibilitas tombol (`Form`).
 5. Regresi bug yang dipertahankan (PRESERVE-BUG tests).
 

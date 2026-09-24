@@ -38,7 +38,7 @@ Semua path sudah disebut eksplisit oleh dev di prompt kickoff sesi ini (2026-09-
 1. **Sifat migrasi, sync, aset store — semua dikonfirmasi dev (dialog intake 2026-09-24):** port kode saja (Step 7 di-skip); source `migration/19.0` beku (SYNC_POLICY tidak dipakai); aset store di branch rilis `19.0` (banner.gif ~23MB, icon.png baru, folder `assets` baru, `index.html` baru, fix key `images`) **TIDAK di-port** — baseline = `migration/19.0` HEAD apa adanya. Dicatat di `FINDINGS.md` MF-07 sebagai keputusan terpisah dev nanti.
 2. **G1/Step 9 dijalankan AI (Mode C)** — dikonfirmasi dev. Docker Hub belum punya `odoo:20.0` (knowledge `19-to-20.md`) → build dari source `odoo20` di-mount read-only (pola yang sudah terbukti di project 19→20 lain).
 3. **Tidak ada dependency Enterprise/OCA** — scan manifest: `base`, `contacts`, `l10n_fr`, `mail` (semua Community). Konsisten dengan dua project sebelumnya.
-4. **Deadline/owner/dokumen pelengkap: belum relevan, dilewati** — diwarisi dari project 18→19 (single owner, tanpa deadline, tanpa dokumen pelengkap selain `doc-dev/` sendiri). Test lama = `fr_business_directory/tests/test_siret_wizard.py` (15 test) + `personal_email_usage/tests/test_fetchmail.py` (15 test) di dalam repo ini — lokasinya SAMA dengan source.
+4. **Deadline/owner/dokumen pelengkap: belum relevan, dilewati** — diwarisi dari project 18→19 (single owner, tanpa deadline, tanpa dokumen pelengkap selain `doc-dev/` sendiri). Test lama = `fr_business_directory/tests/test_siret_wizard.py` (16 test) + `personal_email_usage/tests/test_fetchmail.py` (14 test) di dalam repo ini — lokasinya SAMA dengan source.
 5. **Pre-scan native 20.0 menemukan 4 breaking change install-/fitur-blocking** (dicek dini di Step 1 karena menentukan scope; detail lengkap di `02_DIFF_ANALYSIS.md`):
    - `ir.model.access` (model + format CSV) **dihapus total**, diganti `ir.access` (`ir.access.csv`) → `fr_business_directory` gagal install kalau tidak dikonversi.
    - `res.partner.company_registry` **dihapus total dari base**, diganti JSON `additional_identifiers` (key `FR_SIRET`, dengan validasi Luhn) → tombol "Select" wizard (fitur inti) gagal.
@@ -83,7 +83,7 @@ Dependency opsional runtime: `res.country.department` (dicek via `ir.model.searc
 ## 4. Baseline Spec / Characterization Test (gate)
 
 - [x] `FUNCTIONAL_SPEC.md` lama: tidak ada di repo. Baseline sebelumnya = `doc-dev/migration_18.0_19.0/doc/01_intake/01b_BASELINE_SPEC.md` (BSL-001..024, semua tervalidasi 18→19) — dipakai sebagai draft, di-cross-check ulang baris-per-baris ke kode 19.0 aktual.
-- [x] Test lama: ADA, lokasi SAMA dengan source (`*/tests/*.py` di branch `migration/19.0`) — 30 test (15+15), lulus 30/30 di G1 final project 18→19 (`FINDINGS.md` 18→19 MF-04). Asal-usul: backfill 17.0 (`doc-dev/backfill/`) → project 17→18 → 18→19.
+- [x] Test lama: ADA, lokasi SAMA dengan source (`*/tests/*.py` di branch `migration/19.0`) — 30 test (16+14), lulus 30/30 di G1 final project 18→19 (`FINDINGS.md` 18→19 MF-04). Asal-usul: backfill 17.0 (`doc-dev/backfill/`) → project 17→18 → 18→19.
 - [x] `01b_BASELINE_SPEC.md` terisi — lihat file itu (BSL-001..BSL-030).
 
 ### 4a. Dokumen Pelengkap Lain

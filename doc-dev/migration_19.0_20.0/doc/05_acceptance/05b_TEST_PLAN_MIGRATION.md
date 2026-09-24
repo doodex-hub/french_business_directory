@@ -9,7 +9,7 @@
 
 ## Step 9 — Dev Testing
 
-> Eksekusi: Mode C (AI jalankan) — `docker compose up` di `docker-env/` (Odoo 20.0 from source), `-i fr_business_directory,personal_email_usage --test-enable --test-tags=/fr_business_directory,/personal_email_usage --without-demo=all --stop-after-init`. `docker compose down -v` sebelum tiap rerun. Tour: N/A (tidak ada Owl/JS — Fase E N/A), jadi tidak butuh Chrome; `Form` (`odoo.tests.Form`) dipakai untuk mensimulasikan onchange form partner (AC-01-02).
+> Eksekusi: Mode C (AI jalankan) — `docker compose up` di `docker-env/` (Odoo 20.0 from source), `-i fr_business_directory,personal_email_usage --test-enable --test-tags=/fr_business_directory,/personal_email_usage --stop-after-init` (demo default OFF di 20.0; run resmi lewat `docker-env/run-test.sh`). `docker compose down -v` sebelum tiap rerun. Tour: N/A (tidak ada Owl/JS — Fase E N/A), jadi tidak butuh Chrome; `Form` (`odoo.tests.Form`) dipakai untuk mensimulasikan onchange form partner (AC-01-02).
 >
 > Nama test = nama method di file; audit isi (bukan stub) dilakukan di Step 9a. File: `F` = `fr_business_directory/tests/test_siret_wizard.py`, `P` = `personal_email_usage/tests/test_fetchmail.py`, `N` = test baru Fase G2 (`fr_business_directory/tests/test_migration_20.py`).
 
@@ -42,7 +42,7 @@
 | AC-11-03/04 | mark_read | P `test_mark_read_true_reapplies_seen_flag`, `test_mark_read_false_does_not_reapply_seen_flag` | — | N/A |
 | AC-11-05 | dedup/batch/server/attach | P `test_duplicate_message_id_skipped_on_repeat_fetch`, `test_message_process_exception_does_not_abort_batch`, `test_one_server_connect_failure_does_not_block_other_servers`, `test_attach_and_original_flags_forwarded_to_message_process` | — | N/A |
 
-**Email nyata (USAGE_GUIDE "Testing email nyata"):** level logic (`_fetch_mail` dengan IMAP mock + `message_new` langsung) sudah WAJIB & ada (15 test P). Level pipeline penuh (GreenMail IMAP sungguhan) — opsional, ditunda ke Step 10 kalau dev menginginkan (sama seperti project 18→19).
+**Email nyata (USAGE_GUIDE "Testing email nyata"):** level logic (`_fetch_mail` dengan IMAP mock + `message_new` langsung) sudah WAJIB & ada (14 test P). Level pipeline penuh (GreenMail IMAP sungguhan) — opsional, ditunda ke Step 10 kalau dev menginginkan (sama seperti project 18→19).
 
 ## Step 10 — QA Testing (belum dijalankan — STOP wajib, menunggu slot dev)
 
