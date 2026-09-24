@@ -25,6 +25,10 @@
 | MF-04 | package `odoo.osv` dihapus total di 20.0 → `from odoo.osv import expression` (tak terpakai) ImportError | Step 1 (pre-scan) / 2 | `[GAP-MIGRASI]` | Tinggi (install-blocking `personal_email_usage`) | Keputusan AI: hapus baris import itu saja |
 | MF-05 | `self._cr` / `self._context` masih deprecated (bukan dihapus) di 20.0 | Step 2 | `[DIWARISI-SOURCE]` (informasional) | Rendah | Tidak diubah (konsisten keputusan MF-04 18→19) |
 | MF-06 | Test existing terikat ke `company_registry` + data SIRET dummy yang tidak lolos validasi Luhn 20.0 | Step 2 / 6 (G1 #5) | `[GAP-MIGRASI]` (test) | Sedang | ✅ RESOLVED (G1 #7, 42/42 PASS) |
+| RMV-01 | Ikon Font Awesome (`icon="fa-search"`, `icon="fa-arrow-left"`, `<i class="fa fa-arrow-right">`) rusak di 20.0 — FA dihapus, semua ikon jadi ligatur `oi` | Step 10 (Cross-Version Compare) | `REGRESI` | Sedang (visual) | ✅ FIXED + test `test_no_font_awesome_icons_rmv01`, visual identik 19.0 |
+| RMV-02 | Select setelah paginasi menimpa partner dengan id = id wizard (bukan kontak asal) — korupsi data | Step 10 (Cross-Version Compare) | `GAP-LAMA` (identik 19.0) | **Kritis** (data) | 🔴 OPEN — ESCALATION, menunggu keputusan dev (fix atau known issue) |
+| RMV-03 | API gouv.fr sering membalas 429 → memicu NameError `_logger` (BSL-008) → dialog "Oops" | Step 10 | `GAP-LAMA` | Sedang (UX) | 🟡 OPEN — keputusan dev (bug bawaan dipertahankan) |
+| RMV-04 | "None" di alamat bila `numero_voie` kosong; judul wizard "Odoo" setelah paginasi | Step 10 | `GAP-LAMA` (kosmetik) | Rendah | Dicatat, tidak difix |
 | MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
 
 ---
@@ -143,3 +147,35 @@
 - **Bukti:** `test_button_visibility_workaround_mf03` (company tanpa VAT tersimpan: `is_company=False`, `parent_id` kosong → tombol tampil & wizard terbuka; kontak anak → tombol tersembunyi); `test_partner_form_arch_has_name_and_button` assert `invisible="parent_id"`. Run `run-test.sh`: 0 failed, 0 error of 43.
 - **Kenapa belum selesai (sisa gap yang diketahui):** (1) individu pribadi tanpa parent juga melihat tombol (di 19.0 tidak) — efek samping tidak berbahaya, tapi berbeda dari 19.0; (2) belum ada konfirmasi visual di browser (Step 10); (3) belum ada sign-off bisnis bahwa aturan baru ini yang diinginkan (Step 11). Kalau nanti ada aturan yang lebih tepat (mis. berdasarkan identifier company/SIRET), itu yang menutup finding ini.
 - **Status:** 🟡 OPEN — workaround aktif.
+
+---
+
+## Cross-Version Compare (Step 10, 2026-09-24) — RMV-01..04
+
+Environment: 20.0 `docker-env/` port 8196 vs 19.0 worktree `migration/19.0` @ `35c4e25` + `odoo:19.0` port 8197 (dibongkar setelah selesai). API gouv.fr live. Detail skenario: `10_qa/10_BUSINESS_FLOW_MIGRATION.md`.
+
+### RMV-01 — Ikon Font Awesome rusak di 20.0 — `REGRESI` ✅ FIXED
+- **Bukti:** 19.0 "🔍 Business Directory", "← Prev", "Next →" (`10_qa/evidence/cvc19-*.png`); 20.0 sebelum fix "-🔍 Business Directory", "-- Prev", "Next" tanpa panah (`evidence/s01-new-contact.png`, `s02-wizard-open.png`).
+- **Root cause:** `odoo19/addons/web/static/src/views/view_button/view_button.js` `iconFromString()` mengenali prefix `fa-` → `fa fa-fw`; 20.0 (`odoo20/.../view_button.js:24-29`) SELALU `o_button_icon oi` + `data-icon=<nama>` (ligatur). CSS Font Awesome tidak lagi di-bundle (`web/static/src/libs/fontawesome/` tinggal ttf). Native 20.0: 0 view dengan `icon="fa-…"`.
+- **Kenapa lolos Step 2/8/9:** tidak ada error/warning apa pun, arch tetap valid — hanya kelihatan di mata.
+- **Fix:** `partner.xml` `icon="search"`; `siret_wizard_views.xml` `icon="arrow_back"` + `<i class="oi" data-icon="arrow_forward"/>` (`arrow_left/right` di font ini = caret kecil). Test `test_no_font_awesome_icons_rmv01`. `run-test.sh`: 0 failed, 0 error of 44. Visual ulang identik 19.0 (`evidence/s08-*.png`).
+
+### RMV-02 — Select setelah paginasi menimpa partner yang SALAH — `GAP-LAMA` 🔴 ESCALATION
+- **Bukti live (kedua versi):** wizard dibuka dari partner id 6 → Next → buka baris → Select → Ok ⇒ yang ditulis partner **id = id wizard**. 20.0: wizard 1 → partner 1 ("My Company", perusahaan sendiri: nama, alamat, SIRET tertimpa). 19.0: wizard 1 → partner 1; wizard 2 → partner 2 (OdooBot). Tanpa paginasi → partner 6 benar (S-07).
+- **Mekanisme:** `fetch_next_page()`/`fetch_previous_page()` mengembalikan `ir.actions.act_window` TANPA `context`; web client me-reload dialog wizard dengan `active_id` = `res_id` wizard itu sendiri. `select_siret()` membaca `self._context.get('active_id')` → id wizard → `res.partner.browse(id_wizard)`.
+- **Dampak produksi:** id wizard terus naik → kontak ACAK yang kebetulan ber-id sama ditimpa diam-diam (nama, alamat, SIRET, koordinat); kalau id tidak ada → Select tanpa efek. Tidak ada error.
+- **Kenapa tidak ketahuan sebelumnya:** test Step 9 memanggil `select_siret()` dengan `active_id` eksplisit (tidak lewat reload dialog); UAT 18→19 menerima evidence AI tanpa klik manual.
+- **ESCALATION — Migrasi 20.0** — Step 10 — `fr_business_directory`:
+  - Opsi 1) Port apa adanya (known issue) — Risiko: **tinggi** (korupsi data kontak di produksi).
+  - Opsi 2) Fix minimal: 4 `return` action paginasi membawa context asal (`'context': self.env.context`) — Risiko: rendah; mengubah bug bawaan (butuh persetujuan).
+  - Opsi 3) Simpan `partner_id` di `siret.wizard`, jangan bergantung `active_id` — Risiko: rendah-sedang, perubahan lebih besar.
+  - **Rekomendasi AI: Opsi 2.** Perlu keputusan dev sebelum Step 11.
+
+### RMV-03 — 429 dari API memicu NameError (BSL-008) — `GAP-LAMA` 🟡
+- **Bukti:** ±4 dari ±12 panggilan API selama Step 10 dibalas `429 Too Many Requests` (curl host juga: `429 200 200`). Tiap 429 → `requests.RequestException` → `_logger.error(...)` → `NameError` → dialog "Oops"; transaksi di-rollback (data aman).
+- **Status:** bug bawaan yang wajib dipertahankan (BSL-008, AC-07-01). Dicatat karena pemicunya di dunia nyata SERING. Keputusan dev: pertahankan, atau fix ringan (`import logging` + `_logger`).
+
+### RMV-04 — Kosmetik bawaan — `GAP-LAMA`
+- "None FRM DE VALSERY": `str(siege.get('numero_voie', ''))` saat nilai `None` — sama di 19.0.
+- Judul dialog wizard jadi "Odoo" setelah paginasi (action tanpa `name`) — sama di 19.0.
+- Tidak difix.

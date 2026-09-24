@@ -14,12 +14,14 @@
                  WORKAROUND approved by dev 2026-09-24: show it for every partner without parent
                  (commercial entity). FINDINGS.md MF-03 stays OPEN.
                  `$0` must be the whole text of its element (odoo/tools/template_inheritance.py),
-                 hence the wrapper first, then the button placed after the field. -->
+                 hence the wrapper first, then the button placed after the field.
+                 20.0 dropped Font Awesome (`icon="fa-..."` renders broken, RMV-01): native ligature
+                 icon name `search` is used instead. -->
             <xpath expr="//h1/field[@name='name']" position="replace">
                 <div style="display: flex; align-items: center;white-space:nowrap">$0</div>
             </xpath>
             <xpath expr="//h1/div/field[@name='name']" position="after">
-                <button name="siret_wizard" type="object" class="oe_stat_button oe_highlight search-button prestaterre-search-button" string="Business Directory" icon="fa-search" invisible="parent_id" />
+                <button name="siret_wizard" type="object" class="oe_stat_button oe_highlight search-button prestaterre-search-button" string="Business Directory" icon="search" invisible="parent_id" />
             </xpath>
         </field>
     </record>

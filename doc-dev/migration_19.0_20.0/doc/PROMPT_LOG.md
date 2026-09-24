@@ -16,7 +16,7 @@
 | 7 — Data Migration Scripts | — | — | N/A (port kode saja) |
 | 8 — Code Review | 0 | 0 | idem |
 | 9 — Dev Testing | 0 | 0 | idem |
-| 10 — QA Testing | | | Belum mulai — STOP wajib, menunggu slot dari dev |
+| 10 — QA Testing | 1 | 0 | "mulai step 10" (slot diberikan dev) |
 | 11 — UAT Sign-off | | | |
 | **Total** | 1 | 0 | |
 

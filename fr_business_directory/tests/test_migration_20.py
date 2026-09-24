@@ -81,6 +81,24 @@ class TestMigration20(TransactionCase):
         self.assertIsNone(names[0].get('invisible'))
         self.assertEqual(wrapper.index(names[0]), 0, "name field must come before the button")
 
+    def test_no_font_awesome_icons_rmv01(self):
+        """RMV-01 (Step 10 Cross-Version Compare) — 20.0 dropped Font Awesome: ViewButton renders
+        every `icon` as an `oi` ligature, so `icon="fa-..."` shows as a broken glyph and
+        `<i class="fa ...">` shows nothing. The module's views must use ligature icon names."""
+        partner_arch = self.env['res.partner'].get_view(self.env.ref('base.view_partner_form').id, 'form')['arch']
+        button = etree.fromstring(partner_arch).xpath("//button[@name='siret_wizard']")[0]
+        self.assertEqual(button.get('icon'), 'search')
+        wizard_arch = self.env['siret.wizard'].get_view(self.env.ref('fr_business_directory.view_siret_wizard_form').id, 'form')['arch']
+        wizard_tree = etree.fromstring(wizard_arch)
+        self.assertEqual(wizard_tree.xpath("//button[@name='fetch_previous_page']")[0].get('icon'), 'arrow_back')
+        self.assertTrue(wizard_tree.xpath("//button[@name='fetch_next_page']/i[@data-icon='arrow_forward']"))
+        for arch in (partner_arch, wizard_arch):
+            tree = etree.fromstring(arch)
+            module_nodes = tree.xpath("//button[@name='siret_wizard'] | //button[starts-with(@name, 'fetch_')]//descendant-or-self::*")
+            for node in module_nodes:
+                self.assertFalse((node.get('icon') or '').startswith('fa-'), etree.tostring(node))
+                self.assertNotIn('fa ', (node.get('class') or '') + ' ', etree.tostring(node))
+
     def test_new_partner_form_contacts_context_is_company(self):
         """AC-01-02 [characterization, MF-03] — is_company (drives the button visibility) on a new
         partner form opened like the Contacts action (default_is_company=True), no VAT: in the

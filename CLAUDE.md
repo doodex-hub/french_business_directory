@@ -122,7 +122,7 @@ Cross-cutting, LATEN: `HOTFIX_REVIEW.md` + `HOTFIX_LOG.md` di root `doc/` — di
 
 ## Status saat ini
 
-**Step 1-9 SELESAI (2026-09-24) — Step 9 gate LULUS. ⏸️ STOP WAJIB sebelum Step 10**: dev menahan Step 10 (QA browser live) karena slot lintas-repo terbatas (maks. 2 repo kecil bersamaan ATAU 1 repo besar sendirian; kontensi browser-tool/Docker MF-46). **Jangan mulai Step 10 sampai dev eksplisit bilang giliran repo ini.**
+**Step 1-10 dikerjakan (2026-09-24). Step 10 ⚠️ LULUS BERSYARAT** (slot diberikan dev "mulai step 10"; semua container project + stack compare 19.0 sudah dimatikan, worktree compare dihapus). **Menunggu keputusan dev sebelum Step 11:** RMV-02 🔴 (Select setelah paginasi menimpa partner ber-id = id wizard — bug BAWAAN 19.0, korupsi data; rekomendasi fix Opsi 2), MF-03 🟡 (workaround OPEN), RMV-03 🟡 (API 429 → NameError bawaan), konfirmasi MF-02. RMV-01 (ikon Font Awesome rusak di 20.0) sudah difix → `run-test.sh` 0 failed of 44.
 
 Ringkasan hasil (detail: `doc-dev/migration_19.0_20.0/doc/`):
 - 4 breaking change 20.0 ditangani: `ir.model.access`→`security/ir.access.csv` (MF-01), `company_registry`→`additional_identifiers['FR_SIRET']` (MF-02), form partner dirombak → dua xpath (`$0` wrapper + tombol) (MF-03), `odoo.osv` dihapus (MF-04). Manifest `20.0.1.0.0`.
@@ -148,7 +148,7 @@ Ringkasan cepat — detail lengkap tiap step ada di field `Status:` di header ma
 | 7 | Data Migration Scripts | `07_DATA_MIGRATION_PLAN.md` + script — cuma kalau upgrade instance | — N/A (port kode saja, dikonfirmasi dev) | — |
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Lulus (0 🔴, 0 🟡, 4 🔵) | ✔️ Lulus 2026-09-24 |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ✔️ Lulus (42/42, 0 stub) | ✔️ Lulus 2026-09-24 |
-| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⏸️ Siap, menunggu slot dari dev (STOP wajib) | — |
+| 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ⚠️ Lulus Bersyarat (9/10 live Pass + Cross-Version Compare; RMV-01 difix) | ⏳ Menunggu keputusan dev RMV-02 |
 | 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
 
 Legenda status: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.
