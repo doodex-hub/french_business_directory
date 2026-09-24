@@ -18,6 +18,7 @@ def _fr_siret_identifiers(partner, siret):
         identifiers['FR_SIRET'] = siret
     return identifiers
 
+
 class SiretWizard(models.TransientModel):
     _name = 'siret.wizard'
     _description = 'Siret Wizard'
