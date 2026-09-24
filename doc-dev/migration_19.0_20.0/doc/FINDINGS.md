@@ -28,6 +28,7 @@
 | RMV-01 | Ikon Font Awesome (`icon="fa-search"`, `icon="fa-arrow-left"`, `<i class="fa fa-arrow-right">`) rusak di 20.0 — FA dihapus, semua ikon jadi ligatur `oi` | Step 10 (Cross-Version Compare) | `REGRESI` | Sedang (visual) | ✅ FIXED + test `test_no_font_awesome_icons_rmv01`, visual identik 19.0 |
 | RMV-02 | Select setelah paginasi menimpa partner dengan id = id wizard (bukan kontak asal) — korupsi data | Step 10 (Cross-Version Compare) | `GAP-LAMA` (identik 19.0) | **Kritis** (data) | 🔴 OPEN — ESCALATION, menunggu keputusan dev (fix atau known issue) |
 | RMV-03 | API gouv.fr sering membalas 429 → memicu NameError `_logger` (BSL-008) → dialog "Oops" | Step 10 | `GAP-LAMA` | Sedang (UX) | 🟡 OPEN — keputusan dev (bug bawaan dipertahankan) |
+| RMV-05 | Halaman hasil crash (`TypeError`) kalau API mengembalikan `libelle_voie: null` (mis. "CARREFOUR" hal. 2) | Step 10 | `GAP-LAMA` | Sedang | Dicatat, tidak difix |
 | RMV-04 | "None" di alamat bila `numero_voie` kosong; judul wizard "Odoo" setelah paginasi | Step 10 | `GAP-LAMA` (kosmetik) | Rendah | Dicatat, tidak difix |
 | MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
 
@@ -179,3 +180,14 @@ Environment: 20.0 `docker-env/` port 8196 vs 19.0 worktree `migration/19.0` @ `3
 - "None FRM DE VALSERY": `str(siege.get('numero_voie', ''))` saat nilai `None` — sama di 19.0.
 - Judul dialog wizard jadi "Odoo" setelah paginasi (action tanpa `name`) — sama di 19.0.
 - Tidak difix.
+
+### RMV-05 — Halaman hasil crash kalau API mengembalikan `libelle_voie: null` — `GAP-LAMA`
+- **Bukti:** 2026-09-24, saat menyiapkan demo RMV-02 — pencarian "CARREFOUR" halaman 2 → `TypeError: can only concatenate str (not "NoneType") to str` → dialog "Oops".
+- **Penyebab:** `str(siege.get('numero_voie', '')) + " " + siege.get('libelle_voie', '')` di `_fetch_siret_data()` — `.get()` mengembalikan `None` (key ADA dengan nilai null), bukan default `''`. Baris identik di 19.0 → bawaan, bukan regresi.
+- **Dampak:** halaman tertentu tidak bisa dibuka untuk nama perusahaan tertentu (tergantung data API). Data aman (rollback).
+- **Status:** dicatat, tidak difix (port apa adanya) — kandidat perbaikan pasca-migrasi bersama RMV-02/RMV-03.
+
+### Demo repro RMV-02 (untuk cek manual dev)
+- Skrip: `10_qa/rmv02_demo_setup.py` (idempoten; menyiapkan kontak asal "LA POSTE" dan "KONTAK KORBAN - JANGAN BERUBAH", lalu menyetel sequence `siret.wizard` supaya wizard berikutnya = id korban).
+- Diverifikasi AI 2026-09-24 di DB `fbd_demo_rmv02`: setelah Next → Select, kontak korban (id 7) tertimpa (`4 QUAI DU POINT DU JOUR`, SIRET `35600054700014`), kontak asal (id 6) tidak berubah. Data sudah di-reset untuk dev.
+- Catatan: kalau langkah apa pun memunculkan "Oops" (429), sequence wizard sudah terpakai walau transaksi rollback → jalankan ulang skrip reset sebelum mencoba lagi.
