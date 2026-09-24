@@ -29,6 +29,7 @@
 | RMV-02 | Select setelah paginasi menimpa partner dengan id = id wizard (bukan kontak asal) — korupsi data | Step 10 (Cross-Version Compare) | `GAP-LAMA` (identik 19.0) | **Kritis** (data) | 🔴 OPEN — ESCALATION, menunggu keputusan dev (fix atau known issue) |
 | RMV-03 | API gouv.fr sering membalas 429 → memicu NameError `_logger` (BSL-008) → dialog "Oops" | Step 10 | `GAP-LAMA` | Sedang (UX) | 🟡 OPEN — keputusan dev (bug bawaan dipertahankan) |
 | RMV-05 | Halaman hasil crash (`TypeError`) kalau API mengembalikan `libelle_voie: null` (mis. "CARREFOUR" hal. 2) | Step 10 | `GAP-LAMA` | Sedang | Dicatat, tidak difix |
+| RMV-06 | Next pertama memanggil API 2x (create wizard memicu `default_get` + panggilan API lagi) | Step 10 | `GAP-LAMA` | Sedang (memperbesar 429) | Dicatat, kandidat fix |
 | RMV-04 | "None" di alamat bila `numero_voie` kosong; judul wizard "Odoo" setelah paginasi | Step 10 | `GAP-LAMA` (kosmetik) | Rendah | Dicatat, tidak difix |
 | MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
 
@@ -191,3 +192,14 @@ Environment: 20.0 `docker-env/` port 8196 vs 19.0 worktree `migration/19.0` @ `3
 - Skrip: `10_qa/rmv02_demo_setup.py` (idempoten; menyiapkan kontak asal "LA POSTE" dan "KONTAK KORBAN - JANGAN BERUBAH", lalu menyetel sequence `siret.wizard` supaya wizard berikutnya = id korban).
 - Diverifikasi AI 2026-09-24 di DB `fbd_demo_rmv02`: setelah Next → Select, kontak korban (id 7) tertimpa (`4 QUAI DU POINT DU JOUR`, SIRET `35600054700014`), kontak asal (id 6) tidak berubah. Data sudah di-reset untuk dev.
 - Catatan: kalau langkah apa pun memunculkan "Oops" (429), sequence wizard sudah terpakai walau transaksi rollback → jalankan ulang skrip reset sebelum mencoba lagi.
+
+### RMV-06 — Next pertama memanggil API 2x (create wizard memicu `default_get` lagi) — `GAP-LAMA`
+- **Bukti (2026-09-24, `odoo-bin shell`, `requests.get` di-mock untuk menghitung panggilan):** buka wizard = 1 panggilan (`page=1`); **simpan wizard (web client selalu `create` dulu sebelum tombol pertama) = 1 panggilan LAGI ke `page=1`**; `fetch_next_page` = 1 panggilan (`page=2`). Jadi klik Next pertama = 2 panggilan beruntun, satu sia-sia.
+- **Penyebab:** `SiretWizard.default_get()` memanggil API setiap kali `active_id` ada di context — termasuk saat ORM `create()` mengisi default untuk field yang tidak dikirim. Hasil panggilan kedua juga membuat record `siret.wizard.result` yatim (tidak dipakai).
+- **Dampak:** menambah beban ke API yang ber-rate-limit (7/detik, bisa diturunkan saat padat) → memperbesar peluang 429 (RMV-03). Perilaku ORM sama di 19.0 → bawaan.
+- **Status:** dicatat; kandidat perbaikan bersama RMV-02/RMV-03.
+
+### Klarifikasi sumber error "Oops" (atas pertanyaan dev 2026-09-24)
+- **Pemicu = API (eksternal):** 429 muncul juga dari `curl` host (di luar Odoo & addon) dan dari fetch server lain ke halaman dokumentasi API (`Retry-After: 4`); dokumentasi resmi (data.gouv.fr, DINUM): gratis, tanpa key, batas 7 panggilan/detik yang boleh diturunkan saat server padat.
+- **Dialog "Oops" = bug addon kita:** traceback menunjuk `fr_business_directory/models/siret_wizard.py:145` `NameError: name '_logger' is not defined` di blok `except requests.RequestException`. Tanpa bug ini, 429 hanya di-log dan wizard tampil tanpa hasil (tanpa traceback). Kode ini identik 16.0–20.0.
+- **Addon ikut memperbesar peluang 429:** RMV-06.
