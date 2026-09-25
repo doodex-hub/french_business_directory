@@ -149,7 +149,7 @@ Ringkasan cepat — detail lengkap tiap step ada di field `Status:` di header ma
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Lulus (0 🔴, 0 🟡, 4 🔵) | ✔️ Lulus 2026-09-24 |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ✔️ Lulus (42/42, 0 stub) | ✔️ Lulus 2026-09-24 |
 | 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ✔️ Lulus (10 live Pass + Cross-Version Compare; RMV-01/02/03/06 difix) | ✔️ Lulus 2026-09-24 |
-| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | 🔄 Checklist siap, menunggu user menjalankan & sign-off | ⏳ Server UAT port 8196 DB `fbd_uat_20` |
+| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ✔️ Diterima via waiver (evidence AI, tanpa eksekusi manual) | ✔️ Ditutup 2026-09-25 — `MIGRATION_CLOSED.md` |
 
 Legenda status: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.
 

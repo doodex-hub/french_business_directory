@@ -3,7 +3,7 @@
 **Step:** 11 — UAT Sign-off (final)
 **Ref:** `05_acceptance/05a_MIGRATION_ACCEPTANCE_CRITERIA.md`, `10_qa/10_BUSINESS_FLOW_MIGRATION.md`, `FIX_TRACKER.md`
 **Tanggal disusun:** 2026-09-25
-**Status:** ⏳ Menunggu dijalankan & ditandatangani oleh user (AI hanya menyusun — kolom Actual/Status/Sign-off sengaja kosong)
+**Status:** ✔️ Ditutup — **UAT diterima berdasarkan evidence test AI (waiver eksekusi manual)**, keputusan dev 2026-09-25. Skenario T-01..T-07 TIDAK dijalankan manual oleh user; kolom Actual/Status per langkah sengaja tetap kosong.
 
 > Kriteria sukses: user tidak merasakan perbedaan dengan 19.0, **kecuali** perubahan yang sudah disepakati (lihat "Review Item Out-of-Scope / Perubahan yang Disepakati").
 > Dokumen ini adalah **skrip test untuk dijalankan sendiri** — bukan laporan hasil AI.
@@ -127,12 +127,29 @@ Stakeholder mengonfirmasi sadar & menerima (detail: `FINDINGS.md`, `FIX_TRACKER.
 
 | Role | Nama | Tanggal | Tanda tangan |
 |---|---|---|---|
-| PM | | | |
-| FA | | | |
-| User | | | |
+| PM | — (single owner) | 2026-09-25 | Waiver: dev (kuncoro@doodex.net) menerima evidence AI — tidak ada eksekusi manual |
+| FA | — (single owner) | 2026-09-25 | idem |
+| User / Dev | kuncoro@doodex.net | 2026-09-25 | "UAT percaya pada ai-test yang sudah dilakukan, MIGRATION_CLOSED" (chat 2026-09-25) |
 
 > Kosong sampai skenario di atas dijalankan sendiri. Setelah sign-off lengkap, AI menulis `doc/MIGRATION_CLOSED.md` (SHA HEAD `migration/20.0` saat itu).
 
 ## Penutupan Migrasi
 
-- [ ] `doc/MIGRATION_CLOSED.md` ditulis dengan SHA + tanggal + branch target.
+- [x] `doc/MIGRATION_CLOSED.md` ditulis dengan SHA + tanggal + branch target (2026-09-25).
+
+## Dasar Penerimaan (Waiver UAT Manual) — 2026-09-25
+
+Dev memilih menerima **evidence AI** sebagai pengganti eksekusi UAT manual (chat 2026-09-25: *"UAT percaya pada ai-test yang sudah dilakukan, MIGRATION_CLOSED"*). Evidence yang menjadi dasar, per skenario:
+
+| Skenario UAT | Evidence AI (bukan eksekusi user) |
+|---|---|
+| T-01 tombol & wizard kontak baru | Step 10 S-01, S-02, S-03 live (Playwright, API live) + test `test_partner_form_arch_has_name_and_button`, `test_button_visibility_workaround_mf03` |
+| T-02 paginasi | Step 10 S-04 live (1→2, 2→1, 1→400, 400→1) + 5 test paginasi |
+| T-03 Select mengisi kontak yang benar | Step 10 S-06 rerun + S-07 live (query DB: kontak asal ter-update, pembanding & "My Company" utuh) + test RMV-02 |
+| T-04 alamat tanpa "None", tanpa crash | Live 2026-09-25 CARREFOUR hal. 2 (`evidence/s11-rmv04-fixed.png`) + test RMV-04/RMV-05 |
+| T-05 siapa dapat tombol | Live 2026-09-25 DEMO 1–4 (DOM check) — aturan MF-03 opsi A diterima dev |
+| T-06 Cancel tanpa perubahan | Step 10 S-02/S-04 (Cancel/rollback teramati) — tidak ada test khusus |
+| T-07 Mark Emails as Read | Step 10 S-08, S-09 live |
+| Seluruh modul | `run-test.sh` **0 failed, 0 error of 58** (commit `c883c2c`) |
+
+**Risiko yang diterima dev dengan waiver ini:** tidak ada verifikasi oleh mata/tangan business user; alur dijalankan sebagai Administrator oleh AI (hak akses user non-admin `uat_contacts` tidak diuji manual — dicover test `test_internal_user_can_use_wizard_models`); perilaku API gouv.fr live bisa berbeda di jaringan produksi.
