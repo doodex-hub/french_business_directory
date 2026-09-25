@@ -122,6 +122,8 @@ Cross-cutting, LATEN: `HOTFIX_REVIEW.md` + `HOTFIX_LOG.md` di root `doc/` — di
 
 ## Status saat ini
 
+**MIGRASI 19.0→20.0 DITUTUP 2026-09-25.** UAT diterima dev berdasarkan evidence test AI (waiver eksekusi manual, sama seperti 18→19) — `11_uat/11_UAT_CHECKLIST.md` §"Dasar Penerimaan". Titik-nol hotfix: `doc-dev/migration_19.0_20.0/doc/MIGRATION_CLOSED.md` — commit baru di `migration/20.0` setelah SHA itu → jalankan proses `HOTFIX_REVIEW.md`. Sisa aksi dev: `git push` (manual), backup sebelum go-live.
+
 **Perbaikan pra-UAT SELESAI 2026-09-25** (`doc-dev/migration_19.0_20.0/doc/FIX_TRACKER.md`): RMV-05 ✅, MF-02 ✅ (opsi B, UserError Inggris), MF-03 ✅ (opsi A, `invisible="parent_id"` diterima), RMV-04 ✅, MF-05 ➖. `run-test.sh` 0 failed of 58. **Step 11 UAT: checklist `11_uat/11_UAT_CHECKLIST.md` siap (T-01..T-07), server UAT `fbd20_uat` port 8196 DB `fbd_uat_20`, user `uat_contacts` (password disetel dev sendiri). Menunggu user menjalankan & sign-off — AI TIDAK mengisi Actual/Status/Sign-off.** **Step 1-10 SELESAI (2026-09-24). Step 10 ✔️ LULUS** setelah paket perbaikan yang DISETUJUI DEV: RMV-01 (ikon Font Awesome, regresi), RMV-02 (Select setelah paginasi menimpa kontak salah), RMV-03 (429 → retry + pesan Inggris, `_logger`), RMV-06 (panggilan API ganda) — `run-test.sh` 0 failed of 53, diverifikasi live. **Terbuka untuk Step 11:** MF-03 workaround (sign-off aturan tombol `invisible="parent_id"`), RMV-04/RMV-05 (GAP-LAMA belum diputuskan), konfirmasi MF-02. Server demo `fbd20_demo` (port 8196, DB `fbd_demo_rmv02`) mungkin masih jalan untuk cek manual dev — matikan dengan `docker rm -f fbd20_demo` lalu `docker compose down` di `docker-env/`.
 
 Ringkasan hasil (detail: `doc-dev/migration_19.0_20.0/doc/`):
