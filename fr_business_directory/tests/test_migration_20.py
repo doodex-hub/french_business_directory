@@ -169,13 +169,24 @@ class TestMigration20(TransactionCase):
         self.assertEqual(self.partner.city, 'PARIS')
 
     def test_select_invalid_siret_raises_validation_error(self):
-        """AC-04-04 [MF-02 deviation a] — a SIRET rejected by the 20.0 FR_SIRET validator raises
-        ValidationError and the whole write is rejected (19.0 stored it as-is)."""
+        """AC-04-04 [MF-02 deviation a, option B approved by the dev 2026-09-25] — a SIRET rejected
+        by the 20.0 FR_SIRET validator raises a module UserError naming the directory data (not
+        Odoo's generic "Invalid identifier"), and the contact is not updated at all (19.0 stored
+        the value as-is). Etablissement level behaves the same."""
         wizard = self._open_wizard([_result(nom_complet='BAD CO', siret='12345678900012')])
         row = wizard.result_ids[0]
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(UserError) as ctx:
             with self.env.cr.savepoint():
                 row.with_context(active_id=self.partner.id).select_siret()
+        self.assertNotIsInstance(ctx.exception, ValidationError)
+        self.assertEqual(
+            str(ctx.exception),
+            "The company directory returned an invalid SIRET (12345678900012). The contact was not updated.",
+        )
+        etab = wizard.result_ids.matching_etablissements
+        with self.assertRaises(UserError):
+            with self.env.cr.savepoint():
+                etab.with_context(active_id=self.partner.id).select_siret()
         self.assertEqual(self.partner.name, 'ACME')
         self.assertFalse(self.partner._get_additional_identifier('FR_SIRET'))
 

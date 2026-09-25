@@ -30,7 +30,7 @@ Then masing-masing tepat satu record grup `base.group_user`, `operation = 'crud'
 **AC-01-01** `[COMPAT-FIX WAJIB]` (verifies `BSL-001`, `BSL-025`; `DIFF-03`, `MF-03`)
 Given kontak TANPA parent (19.0: kontak dengan `is_company = True`)
 When form partner dibuka
-Then field nama DAN tombol "Business Directory" tampil sebaris di header. **Update 2026-09-24 (MF-03 workaround, disetujui dev):** tombol tampil untuk semua partner TANPA parent (`invisible="parent_id"`), termasuk company tanpa VAT; kontak anak tidak mendapat tombol. Deviasi terdokumentasi dari 19.0 (19.0: hanya `is_company`); MF-03 tetap OPEN. **Alasan:** `is_company` 20.0 dihitung platform (entitas komersial sendiri + punya VAT) sehingga ekspresi 19.0 membuat company tanpa VAT kehilangan tombol setelah save. Konfirmasi visual Step 10.
+Then field nama DAN tombol "Business Directory" tampil sebaris di header. **Update 2026-09-24 (MF-03 workaround, disetujui dev):** tombol tampil untuk semua partner TANPA parent (`invisible="parent_id"`), termasuk company tanpa VAT; kontak anak tidak mendapat tombol. Deviasi terdokumentasi dari 19.0 (19.0: hanya `is_company`); MF-03 CLOSED — aturan diterima dev 2026-09-25 (opsi A). **Alasan:** `is_company` 20.0 dihitung platform (entitas komersial sendiri + punya VAT) sehingga ekspresi 19.0 membuat company tanpa VAT kehilangan tombol setelah save. Konfirmasi visual Step 10.
 
 **AC-01-02** `[BARU-20.0]` (verifies `BSL-001`)
 Given form partner baru dibuka lewat action Contacts (`default_is_company: True`), tanpa VAT
@@ -66,10 +66,10 @@ Then partner (`active_id`) di-overwrite dalam satu write: `name`, **SIRET di `ad
 **AC-04-02** (verifies `BSL-006`) Given `res.country.department` TERSEDIA, When Select, Then `country_department_id`/`state_id`/`country_id` terisi. *(skip otomatis — model tidak tersedia di environment manapun)*
 **AC-04-03** (verifies `BSL-006`) Given `res.country.department` TIDAK tersedia, When Select, Then field departemen/state/country tidak disentuh, field lain tetap ter-write.
 
-**AC-04-04** `[BARU-20.0]` (verifies `BSL-004`; `MF-02` deviasi a)
+**AC-04-04** `[BARU-20.0]` (verifies `BSL-004`; `MF-02` deviasi a — opsi B disetujui dev 2026-09-25)
 Given baris hasil dengan SIRET yang TIDAK valid menurut validator native 20.0 (`stdnum.fr.siret`, Luhn)
 When "Select"
-Then `ValidationError` (write ditolak utuh, partner tidak berubah). **Deviasi terdokumentasi** dari 19.0 (19.0 menyimpan nilai apa adanya) — perilaku platform 20.0.
+Then `UserError` berbahasa Inggris "The company directory returned an invalid SIRET (…). The contact was not updated." (partner tidak berubah). **Deviasi terdokumentasi** dari 19.0 (19.0 menyimpan nilai apa adanya).
 
 **AC-04-05** `[BARU-20.0]` (verifies `BSL-004`; `MF-02` deviasi b)
 Given partner yang sudah punya identifier lain di `additional_identifiers` (bukan `FR_SIRET`/`FR_SIREN`) dan `FR_SIRET` lama

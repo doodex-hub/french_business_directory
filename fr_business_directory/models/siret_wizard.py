@@ -35,6 +35,14 @@ def _fr_siret_identifiers(partner, siret):
     identifiers.pop('FR_SIRET', None)
     identifiers.pop('FR_SIREN', None)
     if siret:
+        # Check it up-front so the user gets a message about the directory data instead of
+        # Odoo's generic "Invalid identifier" ValidationError (FINDINGS.md MF-02, option B).
+        if not partner.env['res.partner']._validate_identifier('FR_SIRET', siret)['valid']:
+            raise UserError(_(
+                "The company directory returned an invalid SIRET (%(siret)s). "
+                "The contact was not updated.",
+                siret=siret,
+            ))
         identifiers['FR_SIRET'] = siret
     return identifiers
 
