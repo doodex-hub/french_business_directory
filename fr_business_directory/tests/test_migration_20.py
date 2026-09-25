@@ -325,3 +325,23 @@ class TestDirectoryApiFixes(TransactionCase):
         row.with_context(**action['context']).select_siret()
         self.assertEqual(self.partner.name, 'PAGE TWO CO')
         self.assertEqual(other.name, 'MUST NOT CHANGE')
+
+    # --- RMV-05: null values from the API must not crash the wizard ---------------------------
+
+    def test_null_libelle_voie_does_not_crash(self):
+        """RMV-05 — the API sends `"libelle_voie": null` for some companies (e.g. "CARREFOUR" page
+        2): 16.0-19.0 raised TypeError ("can only concatenate str (not NoneType)")."""
+        with patch('requests.get', return_value=_mock_response([_result(libelle_voie=None, matching_etablissements=[])])):
+            wizard = self.Wizard.create({})
+        self.assertEqual(len(wizard.result_ids), 1)
+        self.assertEqual(wizard.result_ids.street, '10 ')
+        self.assertEqual(wizard.result_ids.matching_etablissements.adresse, '10 ')
+
+    def test_select_etablissement_without_postal_code_does_not_crash(self):
+        """RMV-05 — an etablissement without postal code (or address) can be selected."""
+        etab = {'siret': '33417522101010', 'adresse': '1 RUE X', 'code_postal': None, 'date_fermeture': False}
+        with patch('requests.get', return_value=_mock_response([_result(matching_etablissements=[etab])])):
+            wizard = self.Wizard.create({})
+        wizard.result_ids.matching_etablissements.with_context(active_id=self.partner.id).select_siret()
+        self.assertEqual(self.partner.street, '1 RUE X')
+        self.assertFalse(self.partner.zip)

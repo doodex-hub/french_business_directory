@@ -28,7 +28,7 @@
 | RMV-01 | Ikon Font Awesome (`icon="fa-search"`, `icon="fa-arrow-left"`, `<i class="fa fa-arrow-right">`) rusak di 20.0 — FA dihapus, semua ikon jadi ligatur `oi` | Step 10 (Cross-Version Compare) | `REGRESI` | Sedang (visual) | ✅ FIXED + test `test_no_font_awesome_icons_rmv01`, visual identik 19.0 |
 | RMV-02 | Select setelah paginasi menimpa partner dengan id = id wizard (bukan kontak asal) — korupsi data | Step 10 (Cross-Version Compare) | `GAP-LAMA` (identik 19.0) | **Kritis** (data) | ✅ FIXED (disetujui dev 2026-09-24): action paginasi membawa context asal; live: kontak asal ter-update, korban utuh |
 | RMV-03 | API gouv.fr sering membalas 429 → memicu NameError `_logger` (BSL-008) → dialog "Oops" | Step 10 | `GAP-LAMA` | Sedang (UX) | ✅ FIXED (disetujui dev 2026-09-24): `_logger` + retry 429 (Retry-After, maks 2x, ≤5 dtk) + pesan UserError bahasa Inggris; live: 429 → retry → sukses |
-| RMV-05 | Halaman hasil crash (`TypeError`) kalau API mengembalikan `libelle_voie: null` (mis. "CARREFOUR" hal. 2) | Step 10 | `GAP-LAMA` | Sedang | Dicatat, tidak difix |
+| RMV-05 | Halaman hasil crash (`TypeError`) kalau API mengembalikan `libelle_voie: null` (mis. "CARREFOUR" hal. 2) | Step 10 | `GAP-LAMA` | Sedang | ✅ FIXED (disetujui dev 2026-09-25): `libelle_voie` null → teks kosong; `_split_address` aman untuk alamat/kode pos kosong; live: CARREFOUR hal. 2 tampil |
 | RMV-06 | Next pertama memanggil API 2x (create wizard memicu `default_get` + panggilan API lagi) | Step 10 | `GAP-LAMA` | Sedang (memperbesar 429) | ✅ FIXED (disetujui dev 2026-09-24): `default_get` panggil API hanya saat dialog dibuka + `force_save` counter; live: `web_save` tanpa panggilan API |
 | RMV-04 | "None" di alamat bila `numero_voie` kosong; judul wizard "Odoo" setelah paginasi | Step 10 | `GAP-LAMA` (kosmetik) | Rendah | Dicatat, tidak difix |
 | MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
@@ -218,3 +218,9 @@ Environment: 20.0 `docker-env/` port 8196 vs 19.0 worktree `migration/19.0` @ `3
 
 **Regresi:** `run-test.sh` → **0 failed, 0 error of 53 tests** (44 sebelumnya + 9 baru).
 **Tidak termasuk paket ini (tetap GAP-LAMA, belum diputuskan):** RMV-04 (kosmetik "None"/judul "Odoo"), RMV-05 (`TypeError` saat `libelle_voie` null → masih bisa memunculkan "Oops" untuk nama perusahaan tertentu).
+
+### RMV-05 — FIXED (disetujui dev 2026-09-25: "RMV-05 => PERBAIKI")
+- `models/siret_wizard.py`: `siege.get('libelle_voie', '')` → `(siege.get('libelle_voie') or '')` di 2 tempat (street hasil & adresse etablissement dari siège); `_split_address()` hanya memecah kalau alamat DAN kode pos terisi (API bisa mengirim `code_postal: null` → sebelumnya `TypeError` saat Select).
+- **Sengaja TIDAK diubah:** `str(siege.get('numero_voie', ''))` → tetap menghasilkan "None ..." (itu RMV-04, menunggu cek visual dev).
+- Test: `test_null_libelle_voie_does_not_crash`, `test_select_etablissement_without_postal_code_does_not_crash`. `run-test.sh`: 0 failed, 0 error of 55.
+- Live 2026-09-25 02:07: kontak "CARREFOUR" → Business Directory → Next → halaman 2/400 tampil, tanpa "Oops" (`10_qa/evidence/s10-rmv05-carrefour-page2.png`).

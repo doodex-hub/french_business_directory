@@ -124,7 +124,7 @@ class SiretWizard(models.TransientModel):
                         if not matching_etablissements:
                             matching_etablissements.append((0, 0, {
                                 'activite_principale': siege.get('activite_principale', ''),
-                                'adresse': str(siege.get('numero_voie', '')) + " " + siege.get('libelle_voie', ''),
+                                'adresse': str(siege.get('numero_voie', '')) + " " + (siege.get('libelle_voie') or ''),  # RMV-05: API may send null
                                 'code_postal': siege.get('code_postal', ''),
                                 'date_creation': siege.get('date_creation', ''),
                                 'date_debut_activite': siege.get('date_debut_activite', ''),
@@ -140,7 +140,7 @@ class SiretWizard(models.TransientModel):
                             'name': name,
                             'social_reason': nom_raison_sociale,
                             'siret': siret,
-                            'street': str(siege.get('numero_voie', '')) + " " + siege.get('libelle_voie', ''),
+                            'street': str(siege.get('numero_voie', '')) + " " + (siege.get('libelle_voie') or ''),  # RMV-05: API may send null
                             'street2': siege.get('complement_adresse', ''),
                             'city': siege.get('libelle_commune', ''),
                             'department': siege.get('departement', ''),
@@ -403,7 +403,8 @@ class MatchingEtablissement(models.TransientModel):
         return res
 
     def _split_address(self, full_address, postal_code):
-        if postal_code in full_address:
+        # RMV-05: the API may send an empty/null address or postal code
+        if full_address and postal_code and postal_code in full_address:
             parts = full_address.split(postal_code)
             return parts[0].strip()
         return full_address
