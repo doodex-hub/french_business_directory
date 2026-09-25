@@ -30,7 +30,7 @@
 | RMV-03 | API gouv.fr sering membalas 429 → memicu NameError `_logger` (BSL-008) → dialog "Oops" | Step 10 | `GAP-LAMA` | Sedang (UX) | ✅ FIXED (disetujui dev 2026-09-24): `_logger` + retry 429 (Retry-After, maks 2x, ≤5 dtk) + pesan UserError bahasa Inggris; live: 429 → retry → sukses |
 | RMV-05 | Halaman hasil crash (`TypeError`) kalau API mengembalikan `libelle_voie: null` (mis. "CARREFOUR" hal. 2) | Step 10 | `GAP-LAMA` | Sedang | ✅ FIXED (disetujui dev 2026-09-25): `libelle_voie` null → teks kosong; `_split_address` aman untuk alamat/kode pos kosong; live: CARREFOUR hal. 2 tampil |
 | RMV-06 | Next pertama memanggil API 2x (create wizard memicu `default_get` + panggilan API lagi) | Step 10 | `GAP-LAMA` | Sedang (memperbesar 429) | ✅ FIXED (disetujui dev 2026-09-24): `default_get` panggil API hanya saat dialog dibuka + `force_save` counter; live: `web_save` tanpa panggilan API |
-| RMV-04 | "None" di alamat bila `numero_voie` kosong; judul wizard "Odoo" setelah paginasi | Step 10 | `GAP-LAMA` (kosmetik) | Rendah | Dicatat, tidak difix |
+| RMV-04 | "None" di alamat bila `numero_voie` kosong; judul wizard "Odoo" setelah paginasi | Step 10 | `GAP-LAMA` (kosmetik) | Rendah | ✅ FIXED (disetujui dev 2026-09-25): helper `_street_line()` + action paginasi membawa `name`; live CARREFOUR hal. 2 |
 | MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
 
 ---
@@ -224,3 +224,15 @@ Environment: 20.0 `docker-env/` port 8196 vs 19.0 worktree `migration/19.0` @ `3
 - **Sengaja TIDAK diubah:** `str(siege.get('numero_voie', ''))` → tetap menghasilkan "None ..." (itu RMV-04, menunggu cek visual dev).
 - Test: `test_null_libelle_voie_does_not_crash`, `test_select_etablissement_without_postal_code_does_not_crash`. `run-test.sh`: 0 failed, 0 error of 55.
 - Live 2026-09-25 02:07: kontak "CARREFOUR" → Business Directory → Next → halaman 2/400 tampil, tanpa "Oops" (`10_qa/evidence/s10-rmv05-carrefour-page2.png`).
+
+### RMV-04 — FIXED (disetujui dev 2026-09-25: "RMV-04 => perbaiki")
+- `models/siret_wizard.py`: helper modul-level `_street_line(siege)` = `' '.join(bagian yang terisi dari numero_voie, libelle_voie)` dipakai untuk `street` hasil dan `adresse` etablissement dari siège (sekaligus menggantikan perbaikan RMV-05 di dua baris itu). Format normal tidak berubah ("10 rue de la Paix"); bedanya hanya: tidak ada "None", tidak ada spasi sisa.
+- 4 action paginasi mendapat `'name': _('Search For Companies')` (sama dengan judul action tombol di `models/partner.py`) → judul dialog tidak lagi "Odoo".
+- Test: `test_null_street_number_does_not_show_none`, `test_normal_street_unchanged`, `test_pagination_keeps_dialog_title` (+ ekspektasi 2 test RMV-05 disesuaikan: `'10 '` → `'10'`). `run-test.sh`: 0 failed, 0 error of 58.
+- Live 2026-09-25 02:30: CARREFOUR → Next → hal. 2: judul "Search For Companies", Street "DES ERABLES"/"PAULIN RICHIER" (`10_qa/evidence/s11-rmv04-fixed.png`; sebelum: `s10-rmv05-carrefour-page2.png`).
+
+### MF-02 — klarifikasi (pertanyaan dev 2026-09-25)
+Dialog "Invalid identifier … (SIRET)" HANYA untuk SIRET dengan checksum salah. SIRET valid tersimpan normal (live: `48331597400012`, `35600000024221`, `35600054700014`). API gouv.fr = daftar resmi INSEE → dalam praktik dialog ini tidak pernah muncul; handling-nya pengaman.
+
+### MF-03 — klarifikasi "kenapa individu ikut dapat tombol" (pertanyaan dev 2026-09-25)
+17.0–19.0 punya pilihan Person/Company di form (`company_type`) → `is_company` = pilihan user → aturan `is_company != True` menyembunyikan tombol untuk individu. 20.0 menghapus pilihan itu; `is_company` = tanpa parent DAN punya VAT. Tidak ada lagi data di Odoo 20 yang membedakan "individu" dari "company yang belum punya VAT" → workaround `invisible="parent_id"` tidak bisa memisahkan keduanya. Opsi: A) terima (rekomendasi AI); B) sembunyikan bila kontak punya identifier kategori individual; C) tambah penanda "Is a Company" sendiri (fitur baru).

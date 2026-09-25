@@ -13,6 +13,16 @@ API_MAX_RETRIES = 2
 API_MAX_RETRY_DELAY = 5
 
 
+def _street_line(siege):
+    """'<numero_voie> <libelle_voie>' from an API `siege`, skipping empty/null parts.
+
+    Up to 19.0 this was `str(numero_voie) + " " + libelle_voie`, which showed "None ..." when the
+    API sent a null street number (FINDINGS.md RMV-04) and crashed on a null street name (RMV-05).
+    """
+    parts = (siege.get('numero_voie'), siege.get('libelle_voie'))
+    return ' '.join(str(part) for part in parts if part)
+
+
 def _fr_siret_identifiers(partner, siret):
     """Return the partner's `additional_identifiers` with FR_SIRET overwritten by `siret`.
 
@@ -124,7 +134,7 @@ class SiretWizard(models.TransientModel):
                         if not matching_etablissements:
                             matching_etablissements.append((0, 0, {
                                 'activite_principale': siege.get('activite_principale', ''),
-                                'adresse': str(siege.get('numero_voie', '')) + " " + (siege.get('libelle_voie') or ''),  # RMV-05: API may send null
+                                'adresse': _street_line(siege),  # RMV-04/05
                                 'code_postal': siege.get('code_postal', ''),
                                 'date_creation': siege.get('date_creation', ''),
                                 'date_debut_activite': siege.get('date_debut_activite', ''),
@@ -140,7 +150,7 @@ class SiretWizard(models.TransientModel):
                             'name': name,
                             'social_reason': nom_raison_sociale,
                             'siret': siret,
-                            'street': str(siege.get('numero_voie', '')) + " " + (siege.get('libelle_voie') or ''),  # RMV-05: API may send null
+                            'street': _street_line(siege),  # RMV-04/05
                             'street2': siege.get('complement_adresse', ''),
                             'city': siege.get('libelle_commune', ''),
                             'department': siege.get('departement', ''),
@@ -198,6 +208,7 @@ class SiretWizard(models.TransientModel):
 
                 return {
                     'type': 'ir.actions.act_window',
+                    'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                     'res_model': 'siret.wizard',
                     'view_mode': 'form',
                     'res_id': self.id,
@@ -218,6 +229,7 @@ class SiretWizard(models.TransientModel):
 
             return {
                 'type': 'ir.actions.act_window',
+                'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                 'res_model': 'siret.wizard',
                 'view_mode': 'form',
                 'res_id': self.id,
@@ -243,6 +255,7 @@ class SiretWizard(models.TransientModel):
 
                 return {
                     'type': 'ir.actions.act_window',
+                    'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                     'res_model': 'siret.wizard',
                     'view_mode': 'form',
                     'res_id': self.id,
@@ -265,6 +278,7 @@ class SiretWizard(models.TransientModel):
 
                 return {
                     'type': 'ir.actions.act_window',
+                    'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                     'res_model': 'siret.wizard',
                     'view_mode': 'form',
                     'res_id': self.id,

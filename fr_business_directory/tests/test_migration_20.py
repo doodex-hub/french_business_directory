@@ -334,8 +334,8 @@ class TestDirectoryApiFixes(TransactionCase):
         with patch('requests.get', return_value=_mock_response([_result(libelle_voie=None, matching_etablissements=[])])):
             wizard = self.Wizard.create({})
         self.assertEqual(len(wizard.result_ids), 1)
-        self.assertEqual(wizard.result_ids.street, '10 ')
-        self.assertEqual(wizard.result_ids.matching_etablissements.adresse, '10 ')
+        self.assertEqual(wizard.result_ids.street, '10')
+        self.assertEqual(wizard.result_ids.matching_etablissements.adresse, '10')
 
     def test_select_etablissement_without_postal_code_does_not_crash(self):
         """RMV-05 — an etablissement without postal code (or address) can be selected."""
@@ -345,3 +345,28 @@ class TestDirectoryApiFixes(TransactionCase):
         wizard.result_ids.matching_etablissements.with_context(active_id=self.partner.id).select_siret()
         self.assertEqual(self.partner.street, '1 RUE X')
         self.assertFalse(self.partner.zip)
+
+    # --- RMV-04: cosmetics ---------------------------------------------------------------------
+
+    def test_null_street_number_does_not_show_none(self):
+        """RMV-04 — a null `numero_voie` showed as "None DES ERABLES" up to 19.0."""
+        with patch('requests.get', return_value=_mock_response([_result(numero_voie=None, libelle_voie='DES ERABLES', matching_etablissements=[])])):
+            wizard = self.Wizard.create({})
+        self.assertEqual(wizard.result_ids.street, 'DES ERABLES')
+        self.assertEqual(wizard.result_ids.matching_etablissements.adresse, 'DES ERABLES')
+
+    def test_normal_street_unchanged(self):
+        """RMV-04 — the usual '<number> <street>' format is unchanged."""
+        with patch('requests.get', return_value=_mock_response([_result(matching_etablissements=[])])):
+            wizard = self.Wizard.create({})
+        self.assertEqual(wizard.result_ids.street, '10 rue de la Paix')
+
+    def test_pagination_keeps_dialog_title(self):
+        """RMV-04 — after Next/Prev the dialog title stayed "Odoo" (action without name)."""
+        with patch('requests.get', return_value=_mock_response([_result()], total_pages=3)):
+            wizard = self.Wizard.create({})
+            actions = [wizard.fetch_next_page(), wizard.fetch_previous_page(), wizard.fetch_previous_page()]
+            wizard.page_number = wizard.total_pages
+            actions.append(wizard.fetch_next_page())
+        for action in actions:
+            self.assertEqual(action['name'], 'Search For Companies')
