@@ -17,7 +17,7 @@
 | 8 — Code Review | 0 | 0 | idem |
 | 9 — Dev Testing | 0 | 0 | idem |
 | 10 — QA Testing | 1 | 0 | "mulai step 10" (slot diberikan dev) |
-| 11 — UAT Sign-off | | | |
+| 11 — UAT Sign-off | 4 | 0 | Keputusan fix (RMV-05, MF-02 B, MF-03 A, RMV-04), klarifikasi, checklist UAT disiapkan |
 | **Total** | 1 | 0 | |
 
 ## Catatan Definisi

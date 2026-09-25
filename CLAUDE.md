@@ -122,7 +122,7 @@ Cross-cutting, LATEN: `HOTFIX_REVIEW.md` + `HOTFIX_LOG.md` di root `doc/` — di
 
 ## Status saat ini
 
-**Perbaikan pra-UAT SELESAI 2026-09-25** (`doc-dev/migration_19.0_20.0/doc/FIX_TRACKER.md`): RMV-05 ✅, MF-02 ✅ (opsi B, UserError Inggris), MF-03 ✅ (opsi A, `invisible="parent_id"` diterima), RMV-04 ✅, MF-05 ➖. `run-test.sh` 0 failed of 58. **Berikutnya: Step 11 UAT.** **Step 1-10 SELESAI (2026-09-24). Step 10 ✔️ LULUS** setelah paket perbaikan yang DISETUJUI DEV: RMV-01 (ikon Font Awesome, regresi), RMV-02 (Select setelah paginasi menimpa kontak salah), RMV-03 (429 → retry + pesan Inggris, `_logger`), RMV-06 (panggilan API ganda) — `run-test.sh` 0 failed of 53, diverifikasi live. **Terbuka untuk Step 11:** MF-03 workaround (sign-off aturan tombol `invisible="parent_id"`), RMV-04/RMV-05 (GAP-LAMA belum diputuskan), konfirmasi MF-02. Server demo `fbd20_demo` (port 8196, DB `fbd_demo_rmv02`) mungkin masih jalan untuk cek manual dev — matikan dengan `docker rm -f fbd20_demo` lalu `docker compose down` di `docker-env/`.
+**Perbaikan pra-UAT SELESAI 2026-09-25** (`doc-dev/migration_19.0_20.0/doc/FIX_TRACKER.md`): RMV-05 ✅, MF-02 ✅ (opsi B, UserError Inggris), MF-03 ✅ (opsi A, `invisible="parent_id"` diterima), RMV-04 ✅, MF-05 ➖. `run-test.sh` 0 failed of 58. **Step 11 UAT: checklist `11_uat/11_UAT_CHECKLIST.md` siap (T-01..T-07), server UAT `fbd20_uat` port 8196 DB `fbd_uat_20`, user `uat_contacts` (password disetel dev sendiri). Menunggu user menjalankan & sign-off — AI TIDAK mengisi Actual/Status/Sign-off.** **Step 1-10 SELESAI (2026-09-24). Step 10 ✔️ LULUS** setelah paket perbaikan yang DISETUJUI DEV: RMV-01 (ikon Font Awesome, regresi), RMV-02 (Select setelah paginasi menimpa kontak salah), RMV-03 (429 → retry + pesan Inggris, `_logger`), RMV-06 (panggilan API ganda) — `run-test.sh` 0 failed of 53, diverifikasi live. **Terbuka untuk Step 11:** MF-03 workaround (sign-off aturan tombol `invisible="parent_id"`), RMV-04/RMV-05 (GAP-LAMA belum diputuskan), konfirmasi MF-02. Server demo `fbd20_demo` (port 8196, DB `fbd_demo_rmv02`) mungkin masih jalan untuk cek manual dev — matikan dengan `docker rm -f fbd20_demo` lalu `docker compose down` di `docker-env/`.
 
 Ringkasan hasil (detail: `doc-dev/migration_19.0_20.0/doc/`):
 - 4 breaking change 20.0 ditangani: `ir.model.access`→`security/ir.access.csv` (MF-01), `company_registry`→`additional_identifiers['FR_SIRET']` (MF-02), form partner dirombak → dua xpath (`$0` wrapper + tombol) (MF-03), `odoo.osv` dihapus (MF-04). Manifest `20.0.1.0.0`.
@@ -149,7 +149,7 @@ Ringkasan cepat — detail lengkap tiap step ada di field `Status:` di header ma
 | 8 | Code Review | `08_CODE_REVIEW.md` | ✔️ Lulus (0 🔴, 0 🟡, 4 🔵) | ✔️ Lulus 2026-09-24 |
 | 9 | Dev Testing | `09_DEV_TESTING.md` | ✔️ Lulus (42/42, 0 stub) | ✔️ Lulus 2026-09-24 |
 | 10 | QA Testing | `10_BUSINESS_FLOW_MIGRATION.md` | ✔️ Lulus (10 live Pass + Cross-Version Compare; RMV-01/02/03/06 difix) | ✔️ Lulus 2026-09-24 |
-| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | ⬜ Belum mulai | — |
+| 11 | UAT Sign-off | `11_UAT_CHECKLIST.md` | 🔄 Checklist siap, menunggu user menjalankan & sign-off | ⏳ Server UAT port 8196 DB `fbd_uat_20` |
 
 Legenda status: ⬜ Belum mulai · 🔄 Sedang dikerjakan · ✅ Draft/selesai ditulis · ✔️ Disetujui/lulus gate.
 
