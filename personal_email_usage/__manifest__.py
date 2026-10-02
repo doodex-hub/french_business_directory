@@ -46,7 +46,7 @@ Technical Details:
     ],
 
     'images': [
-        'static/description/banner.png',
+        'static/description/banner.gif',
         'static/description/icon.png',
     ],
     'license': 'LGPL-3',
@@ -55,4 +55,3 @@ Technical Details:
     'application': True,
     'auto_install': False,
 }
-
