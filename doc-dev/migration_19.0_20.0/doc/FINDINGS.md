@@ -2,7 +2,7 @@
 
 **Modul:** french_business_directory (`fr_business_directory`, `personal_email_usage`)
 **Migrasi:** 19.0 → 20.0
-**Terakhir update:** 2026-09-24
+**Terakhir update:** 2026-10-05
 
 > Skema & aturan: `migration-tool/templates/FINDINGS.md`. ID `MF-NNN` di file ini independen dari
 > `MF-NNN` project 18→19 (`doc-dev/migration_18.0_19.0/doc/FINDINGS.md`) — kalau merujuk yang lama,
@@ -32,6 +32,8 @@
 | RMV-06 | Next pertama memanggil API 2x (create wizard memicu `default_get` + panggilan API lagi) | Step 10 | `GAP-LAMA` | Sedang (memperbesar 429) | ✅ FIXED (disetujui dev 2026-09-24): `default_get` panggil API hanya saat dialog dibuka + `force_save` counter; live: `web_save` tanpa panggilan API |
 | RMV-04 | "None" di alamat bila `numero_voie` kosong; judul wizard "Odoo" setelah paginasi | Step 10 | `GAP-LAMA` (kosmetik) | Rendah | ✅ FIXED (disetujui dev 2026-09-25): helper `_street_line()` + action paginasi membawa `name`; live CARREFOUR hal. 2 |
 | MF-07 | Aset store branch rilis `19.0` (banner.gif, icon, assets, index.html, fix manifest `images`) tidak ada di `migration/19.0` | Step 1 | `[PERLU-KEPUTUSAN]` (di luar port kode) | Rendah (non-fungsional) | Keputusan DEV 2026-09-24: TIDAK di-port di migrasi ini |
+| MF-08 | Prev tidak mengirim `limite_matching_etablissements=100` (hasil Prev ≠ Next) dan `print()` debug tertinggal (F-02, F-04 backfill) | Review 2026-10-05 (pasca-migrasi) | `[GAP-LAMA]` | Rendah | ✅ FIXED di rilis 20.0.1.0.1 (2026-10-05) |
+| MF-09 | Rilis hotfix 20.0.1.0.1 (2026-10-05): ringkasan, bukti uji, item yang dibiarkan | Review 2026-10-05 | `[HASIL-BACA]` | — | ✅ Dirilis (cea0124 → 6342b79) |
 
 ---
 
@@ -240,3 +242,29 @@ Dialog "Invalid identifier … (SIRET)" HANYA untuk SIRET dengan checksum salah.
 ### Keputusan dev 2026-09-25 — MF-02 opsi B, MF-03 opsi A (chat: "MF-02 => B, MF-03 => A")
 - **MF-02 → CLOSED (opsi B):** `_fr_siret_identifiers()` memvalidasi SIRET lebih dulu dengan validator native (`res.partner._validate_identifier('FR_SIRET', …)`); kalau tidak valid → `UserError` *"The company directory returned an invalid SIRET (…). The contact was not updated."* (bukan `ValidationError` generik Odoo), tidak ada field yang ditulis. SIRET valid tetap tersimpan seperti sebelumnya. Test `test_select_invalid_siret_raises_validation_error` (level result & etablissement). `run-test.sh` 0 failed of 58. Tidak diverifikasi live (API resmi selalu mengirim SIRET valid) — bukti = test.
 - **MF-03 → CLOSED (opsi A):** aturan `invisible="parent_id"` diterima sebagai aturan final 20.0 (bukan lagi workaround). Konsekuensi yang diterima: individu tanpa parent juga melihat tombol (Odoo 20 tidak lagi membedakan individu vs company tanpa VAT).
+
+---
+
+## Hotfix pasca-migrasi (2026-10-05) — sesi review → fix → publish
+
+RMV-02..06 (paket yang sama) kini juga dirilis ke 18.0 dan 19.0 (`18.0.1.0.1`, `19.0.1.0.1`); lihat FINDINGS di migrasi 17→18 (MF-15..17) dan 18→19 (MF-05..07).
+
+### MF-08 — Prev tanpa `limite_matching_etablissements` dan `print()` debug — `GAP-LAMA` ✅ FIXED
+**Ditemukan di:** Review kode rilis 2026-10-05. Satu-satunya item yang BELUM di-fix di ketiga versi (18/19/20).
+**Lokasi:** `fr_business_directory/models/siret_wizard.py` — `fetch_previous_page` (2 URL) dan 5 `print()`.
+**Bukti sebelum fix:** skrip uji `prev_has_limite=False` di 20.0.
+**Status:** ✅ FIXED di rilis 20.0.1.0.1 — URL Prev sama dengan Next; `print()` dihapus. Sesudah fix `prev_has_limite=True`.
+
+### MF-09 — Rilis hotfix 20.0.1.0.1 (2026-10-05): ringkasan
+**Perubahan kode:** hanya `fr_business_directory/models/siret_wizard.py` (MF-08) dan `__manifest__.py` → `20.0.1.0.1`. `personal_email_usage` tidak berubah.
+**Bukti:** skrip uji `odoo shell` sama dengan 18/19 — semua uji lolos (RMV-02..06 sudah benar sebelumnya, tetap benar). UI nyata (Playwright + API asli, "CARREFOUR"): Next halaman 2 → Select hanya mengubah kontak asal. Upgrade modul tanpa error, log bersih.
+**Belum teruji:** suite test dari branch migrasi tidak dijalankan; Enterprise tidak diuji.
+**Dibiarkan (keputusan dev 2026-10-05, setelah rekomendasi + pertimbangan risiko):**
+- Next/Prev no-op senyap saat `partner_name` kosong (F-03 backfill / MF-04 17→18) — dialog hanya dibuka dari partner bernama; aman.
+- Soft-dependency `res.country.department` (OCA) tidak di `depends` — kode sudah menjaga lewat cek `ir.model`; aman.
+- `position="replace"` pada field nama di form partner (18.0/19.0; di 20.0 sudah memakai `$0`) — berfungsi; rapuh bila modul lain mengubah field yang sama.
+- `personal_email_usage`: email non-kontak yang di-skip tidak pernah ditandai processed → diunduh ulang tiap cron, dan `processed_message_ids` tumbuh tanpa batas (F-07 backfill / MF-05 17→18, keputusan dev 2026-08-24 "dipertahankan identik"). Data aman; beban naik seiring jumlah email non-kontak. Kandidat rilis tersendiri bila mailbox produksi besar.
+- **[baru, dicatat saja]** loop IMAP `personal_email_usage` mengabaikan `batch_limit` dan memproses semua email UNSEEN dalam satu cron — risiko timeout hanya pada mailbox besar.
+- **[baru, dicatat saja]** filter pengirim memakai `=ilike` dengan alamat mentah: `_` dan `%` bertindak sebagai wildcard (pola yang sama dipakai Odoo core); filter hanya melihat header `From` (tanpa cek SPF/DKIM), jadi pengirim yang memalsukan `From` sebuah kontak bisa masuk ke chatter kontak itu — keterbatasan desain, bergantung pada mail server untuk menolak email palsu.
+- Housekeeping `personal_email_usage` (import tak terpakai, CSV security yatim, `application: True`) dan deprecation warning `self._cr.commit()`.
+**Hash:** staging/20.0 3ce84a8 → 2341708; 20.0 (rilis) cea0124 → 6342b79. Branch hotfix: `hotfix/20.0-siret-wizard`.
