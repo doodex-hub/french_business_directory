@@ -7,16 +7,16 @@
         <field name="arch" type="xml">
             <form>
                 <h2>
-                    <field name="result_count" readonly="1" /> Results Found </h2>
+                    <field name="result_count" readonly="1" force_save="1" /> Results Found </h2>
                 <div class="pagination-controls pagination-right"
                     style="display: flex; justify-content: flex-end; align-items: center;">
                     <button name="fetch_previous_page" type="object" string="Prev"
                         class="btn btn-secondary"
                         icon="fa-arrow-left" />
                     <span class="page-count">
-                        <field name="page_number" readonly="1" class="oe_inline" /> / </span>
+                        <field name="page_number" readonly="1" force_save="1" class="oe_inline" /> / </span>
                     <span class="page-total">
-                        <field name="total_pages" readonly="1" class="oe_inline" />
+                        <field name="total_pages" readonly="1" force_save="1" class="oe_inline" />
                     </span>
                     <button name="fetch_next_page" type="object" class="btn btn-secondary"> Next <i
                             class="fa fa-arrow-right"></i>
