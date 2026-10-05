@@ -1,6 +1,27 @@
 from odoo import fields, models, api, _
+from odoo.exceptions import UserError
+import logging
 import requests
+import time
 import urllib
+
+_logger = logging.getLogger(__name__)
+
+# recherche-entreprises.api.gouv.fr is free but rate limited (7 calls/s, lowered when the service
+# is busy) and answers HTTP 429 with a Retry-After header — FINDINGS.md RMV-03.
+API_MAX_RETRIES = 2
+API_MAX_RETRY_DELAY = 5
+
+
+def _street_line(siege):
+    """'<numero_voie> <libelle_voie>' from an API `siege`, skipping empty/null parts.
+
+    Before this fix this was `str(numero_voie) + " " + libelle_voie`, which showed "None ..." when the
+    API sent a null street number (FINDINGS.md RMV-04) and crashed on a null street name (RMV-05).
+    """
+    parts = (siege.get('numero_voie'), siege.get('libelle_voie'))
+    return ' '.join(str(part) for part in parts if part)
+
 
 class SiretWizard(models.TransientModel):
     _name = 'siret.wizard'
@@ -26,17 +47,36 @@ class SiretWizard(models.TransientModel):
         if active_id:
             partner = self.env['res.partner'].browse(active_id)
             res['partner_name'] = partner.name
-            search_name = urllib.parse.quote(str(partner.name))  # Ensure partner.name is a string
+            # Only query the API when the dialog is opened (the web client then asks for every
+            # field, result_ids included). When the wizard is saved, create() only asks for the
+            # fields it did not receive — result_ids is always sent — so the API is not called a
+            # second time for page 1 (FINDINGS.md RMV-06).
+            if 'result_ids' in fields:
+                search_name = urllib.parse.quote(str(partner.name))  # Ensure partner.name is a string
 
-            api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page=1&per_page=25&limite_matching_etablissements=100"
-            self._fetch_siret_data(api_url, res)
+                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page=1&per_page=25&limite_matching_etablissements=100"
+                self._fetch_siret_data(api_url, res)
 
         return res
 
+    def _get_directory_response(self, api_url):
+        """GET the directory API, retrying on HTTP 429 as told by its Retry-After header."""
+        for attempt in range(API_MAX_RETRIES + 1):
+            response = requests.get(api_url)
+            if response.status_code != 429 or attempt == API_MAX_RETRIES:
+                break
+            try:
+                delay = float(response.headers.get('Retry-After') or 1)
+            except (TypeError, ValueError):
+                delay = 1
+            _logger.info("Directory API rate limited (429), retrying in %ss: %s", delay, api_url)
+            time.sleep(min(max(delay, 0), API_MAX_RETRY_DELAY))
+        response.raise_for_status()
+        return response
+
     def _fetch_siret_data(self, api_url, res=None):
         try:
-            response = requests.get(api_url)
-            response.raise_for_status()
+            response = self._get_directory_response(api_url)
 
             data = response.json()
             results = data.get('results', [])
@@ -78,7 +118,7 @@ class SiretWizard(models.TransientModel):
                         if not matching_etablissements:
                             matching_etablissements.append((0, 0, {
                                 'activite_principale': siege.get('activite_principale', ''),
-                                'adresse': str(siege.get('numero_voie', '')) + " " + siege.get('libelle_voie', ''),
+                                'adresse': _street_line(siege),  # RMV-04/05
                                 'code_postal': siege.get('code_postal', ''),
                                 'date_creation': siege.get('date_creation', ''),
                                 'date_debut_activite': siege.get('date_debut_activite', ''),
@@ -94,7 +134,7 @@ class SiretWizard(models.TransientModel):
                             'name': name,
                             'social_reason': nom_raison_sociale,
                             'siret': siret,
-                            'street': str(siege.get('numero_voie', '')) + " " + siege.get('libelle_voie', ''),
+                            'street': _street_line(siege),  # RMV-04/05
                             'street2': siege.get('complement_adresse', ''),
                             'city': siege.get('libelle_commune', ''),
                             'department': siege.get('departement', ''),
@@ -125,7 +165,16 @@ class SiretWizard(models.TransientModel):
                 self.result_ids = [(6, 0, created_results.ids)]
 
         except requests.RequestException as e:
-            _logger.error(f"Error fetching SIRET data: {e}")
+            _logger.error("Error fetching SIRET data: %s", e)
+            if getattr(e.response, 'status_code', None) == 429:
+                raise UserError(_(
+                    "The company directory service (recherche-entreprises.api.gouv.fr) is busy "
+                    "right now. Please wait a moment and try again."
+                )) from e
+            raise UserError(_(
+                "The company directory service (recherche-entreprises.api.gouv.fr) could not be "
+                "reached. Please try again later."
+            )) from e
 
 
     def fetch_next_page(self):
@@ -138,14 +187,18 @@ class SiretWizard(models.TransientModel):
                 self.result_ids.unlink()
 
                 api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
-                print(api_url)
                 self._fetch_siret_data(api_url)
 
                 return {
                     'type': 'ir.actions.act_window',
+                    'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                     'res_model': 'siret.wizard',
                     'view_mode': 'form',
                     'res_id': self.id,
+                    # keep the caller's context (active_id = the partner): without it the reloaded
+                    # dialog gets active_id = this wizard's id and Select overwrites the wrong
+                    # partner (FINDINGS.md RMV-02)
+                    'context': dict(self.env.context),
                     'target': 'new',
                 }
         else:
@@ -154,14 +207,18 @@ class SiretWizard(models.TransientModel):
             self.result_ids.unlink()
 
             api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
-            print(api_url)
             self._fetch_siret_data(api_url)
 
             return {
                 'type': 'ir.actions.act_window',
+                'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                 'res_model': 'siret.wizard',
                 'view_mode': 'form',
                 'res_id': self.id,
+                # keep the caller's context (active_id = the partner): without it the reloaded
+                # dialog gets active_id = this wizard's id and Select overwrites the wrong
+                # partner (FINDINGS.md RMV-02)
+                'context': dict(self.env.context),
                 'target': 'new',
             }
 
@@ -174,33 +231,40 @@ class SiretWizard(models.TransientModel):
                 self.page_number -= 1
                 self.result_ids.unlink()
 
-                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25"
-                print(api_url)
+                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
                 self._fetch_siret_data(api_url)
 
                 return {
                     'type': 'ir.actions.act_window',
+                    'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                     'res_model': 'siret.wizard',
                     'view_mode': 'form',
                     'res_id': self.id,
+                    # keep the caller's context (active_id = the partner): without it the reloaded
+                    # dialog gets active_id = this wizard's id and Select overwrites the wrong
+                    # partner (FINDINGS.md RMV-02)
+                    'context': dict(self.env.context),
                     'target': 'new',
                 }
         else:
             if self.partner_name:
                 search_name = urllib.parse.quote(str(self.partner_name))
                 self.page_number = self.total_pages
-                print(self.page_count)
                 self.result_ids.unlink()
 
-                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25"
-                print(api_url)
+                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
                 self._fetch_siret_data(api_url)
 
                 return {
                     'type': 'ir.actions.act_window',
+                    'name': _('Search For Companies'),  # RMV-04: keep the dialog title after Next/Prev
                     'res_model': 'siret.wizard',
                     'view_mode': 'form',
                     'res_id': self.id,
+                    # keep the caller's context (active_id = the partner): without it the reloaded
+                    # dialog gets active_id = this wizard's id and Select overwrites the wrong
+                    # partner (FINDINGS.md RMV-02)
+                    'context': dict(self.env.context),
                     'target': 'new',
                 }
 
@@ -332,7 +396,8 @@ class MatchingEtablissement(models.TransientModel):
         return res
 
     def _split_address(self, full_address, postal_code):
-        if postal_code in full_address:
+        # RMV-05: the API may send an empty/null address or postal code
+        if full_address and postal_code and postal_code in full_address:
             parts = full_address.split(postal_code)
             return parts[0].strip()
         return full_address
