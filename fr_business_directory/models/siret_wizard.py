@@ -211,7 +211,6 @@ class SiretWizard(models.TransientModel):
                 self.result_ids.unlink()
 
                 api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
-                print(api_url)
                 self._fetch_siret_data(api_url)
 
                 return {
@@ -232,7 +231,6 @@ class SiretWizard(models.TransientModel):
             self.result_ids.unlink()
 
             api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
-            print(api_url)
             self._fetch_siret_data(api_url)
 
             return {
@@ -257,8 +255,7 @@ class SiretWizard(models.TransientModel):
                 self.page_number -= 1
                 self.result_ids.unlink()
 
-                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25"
-                print(api_url)
+                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
                 self._fetch_siret_data(api_url)
 
                 return {
@@ -277,11 +274,9 @@ class SiretWizard(models.TransientModel):
             if self.partner_name:
                 search_name = urllib.parse.quote(str(self.partner_name))
                 self.page_number = self.total_pages
-                print(self.page_count)
                 self.result_ids.unlink()
 
-                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25"
-                print(api_url)
+                api_url = f"https://recherche-entreprises.api.gouv.fr/search?q={search_name}&page={self.page_number}&per_page=25&limite_matching_etablissements=100"
                 self._fetch_siret_data(api_url)
 
                 return {
