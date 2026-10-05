@@ -2,7 +2,7 @@
 
 **Modul:** french_business_directory (`fr_business_directory` + `personal_email_usage`)
 **Migrasi:** 17.0 → 18.0
-**Terakhir update:** 2026-08-31
+**Terakhir update:** 2026-10-05
 
 ---
 
@@ -11,10 +11,10 @@
 | ID | Judul | Ditemukan di Step | Tag | Prioritas | Status |
 |---|---|---|---|---|---|
 | MF-01 | Soft-dependency ke model `res.country.department` (OCA, tidak di-connect) | 1 | `[PERLU-KEPUTUSAN]` | Sedang | 🟡 Ditunda — lanjut tanpa third-party folder, revisit di Step 2/9-10 |
-| MF-02 | `_logger` dipakai tapi tidak diimpor (`siret_wizard.py`) | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Tinggi | 🟡 Default: dipertahankan identik |
-| MF-03 | Param `limite_matching_etablissements` hilang di `fetch_previous_page` | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Sedang | 🟡 Default: dipertahankan identik |
-| MF-04 | No-op senyap saat `partner_name` kosong di tengah paginasi | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Rendah | 🟡 Default: dipertahankan identik |
-| MF-05 | Email yang di-skip tidak pernah ditandai processed → re-fetch tanpa henti | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | **Tinggi** | ✅ CONFIRMED — dev setuju dipertahankan identik (2026-08-24) |
+| MF-02 | `_logger` dipakai tapi tidak diimpor (`siret_wizard.py`) | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Tinggi | ✅ FIXED di rilis 18.0.1.0.1 (2026-10-05) — lihat MF-16 |
+| MF-03 | Param `limite_matching_etablissements` hilang di `fetch_previous_page` | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Sedang | ✅ FIXED di rilis 18.0.1.0.1 (2026-10-05) — lihat MF-16 |
+| MF-04 | No-op senyap saat `partner_name` kosong di tengah paginasi | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Rendah | 🟡 Default: dipertahankan identik — Update 2026-10-05: tetap dibiarkan (lihat MF-17) |
+| MF-05 | Email yang di-skip tidak pernah ditandai processed → re-fetch tanpa henti | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | **Tinggi** | ✅ CONFIRMED — dev setuju dipertahankan identik (2026-08-24); Update 2026-10-05: tetap dibiarkan, risiko beban dicatat di MF-17 |
 | MF-06 | Log ringkasan "succeeded" salah hitung | 1 (diwarisi backfill) | `[DIWARISI-SOURCE]` | Sedang | 🟡 Default: dipertahankan identik |
 | MF-07 | `fetch_mail()` signature core berubah (`raise_exception` param baru) — override modul ini akan `TypeError` di cron 18.0 kalau tidak disesuaikan | 1, dikonfirmasi Step 2 | `[GAP-MIGRASI]` (**dikonfirmasi nyata**) | **Tinggi** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-02) |
 | MF-08 | `from odoo.tools import logging` gagal `ImportError` di 18.0 — `misc.py` menambahkan `__all__` yang menutup leak implisit stdlib `logging` | 6 (ditemukan lewat G1 dry run nyata, TIDAK terdeteksi Step 2/3 review statis) | `[GAP-MIGRASI]` (dikonfirmasi nyata) | **Tinggi (install-blocking)** | ✅ RESOLVED — fix diterapkan Step 6 (lihat `02_DIFF_ANALYSIS.md` DIFF-09) |
@@ -24,6 +24,9 @@
 | MF-12 | 4 gap cakupan test tambahan di `personal_email_usage` (S-10 dedup message-ID, S-11 resiliency exception per-email, S-12 isolasi kegagalan multi-server, S-14 kwargs `strip_attachments`), didentifikasi lewat analisis gap terpisah (`10_qa/human_qa/05_EMAIL_GAPS.md`, dibuat 2026-08-31) | 9/10 (gap ditemukan lewat analisis terpisah 2026-08-31), ditutup sesi ini | `[DIWARISI-SOURCE]` — gap cakupan test, bukan bug produk | Rendah (semua PASS saat dieksekusi, tidak ada bug baru terungkap) | ✅ RESOLVED — 4 method baru ditambahkan ke `test_fetchmail.py` (`test_duplicate_message_id_skipped_on_repeat_fetch`, `test_message_process_exception_does_not_abort_batch`, `test_one_server_connect_failure_does_not_block_other_servers`, `test_attach_and_original_flags_forwarded_to_message_process`), dijalankan, 0 failed/error dari 30 test total (`personal_email_usage`: 16, naik dari 12). S-13 (POP3 delegasi, sudah `AC-08-02`) dan S-15 (verifikasi UI manual field `mark_read`) TETAP terbuka — lihat `05_EMAIL_GAPS.md` |
 | MF-13 | Tombol "Save"/"Test Connection" tidak menyimpan record di form dengan pola "server connection test" (`fetchmail.server`, `ir.mail_server`) — Odoo build `18.0-20260817`. **Dikonfirmasi BUKAN bug modul** (isolasi 4 data point: 2 form yang dimodifikasi modul kita berhasil save, 1 form yang sama sekali tidak disentuh modul manapun gagal identik) | 10 (S-15, 2026-08-31), isolasi tuntas hari yang sama | `[GAP-MIGRASI]` — **dikonfirmasi bug environment/Odoo build, BUKAN kode modul** (final, bukan dugaan) | Sedang (menghalangi verifikasi persistence S-15 saja, tidak menghalangi fungsi modul — `fetch_mail()` sudah terverifikasi penuh lewat test otomatis MF-11/MF-12) | 🔴 Save tetap tidak bisa diverifikasi (di luar kendali modul ini), TAPI penyebabnya sudah final dikesampingkan dari kode `personal_email_usage`/`fr_business_directory` |
 | MF-14 | Validasi PERTAMA pola GreenMail-incoming level pipeline penuh (`personal_email_usage` jadi modul percobaan pertama, per catatan `migration-tool/ai-doc/USAGE_GUIDE.md`) — BERHASIL, resep tervalidasi tanpa koreksi | 9/10 (2026-08-31) | `[HASIL-BACA]` — validasi tooling, bukan bug | — | ✅ Berhasil — email dari kontak dikenal diproses benar, email non-kontak di-skip benar, `\Seen` flag terkonfirmasi via `imaplib` sungguhan (bukan mock), cocok 100% dengan hasil test mock yang sudah ada. Layak dipromosikan ke knowledge base lewat sesi curation |
+| MF-15 | Select setelah paginasi menimpa partner yang SALAH (= RMV-02 di 19→20) | Review 2026-10-05 | `[GAP-LAMA]` | **Kritis (data)** | ✅ FIXED di rilis 18.0.1.0.1 (2026-10-05) |
+| MF-16 | Paket ketahanan API & paginasi: `_logger`, 429, alamat null, panggilan API ganda, judul dialog, param limite Prev, `print()` (= RMV-03..06) | Review 2026-10-05 | `[GAP-LAMA]` | Sedang | ✅ FIXED di rilis 18.0.1.0.1 (2026-10-05) |
+| MF-17 | Rilis hotfix 18.0.1.0.1: ringkasan, bukti uji, item yang dibiarkan | Review 2026-10-05 | `[HASIL-BACA]` | — | ✅ Dirilis (d26185b → f58cde6) |
 
 ---
 
@@ -43,6 +46,7 @@
 ---
 
 ### MF-02 — `_logger` dipakai tapi tidak diimpor (`siret_wizard.py`)
+> **Update 2026-10-05:** ✅ FIXED di rilis 18.0.1.0.1 (hotfix port dari 20.0) — lihat MF-16. Keputusan lama "dipertahankan identik" dibalik oleh dev 2026-10-05.
 **Ditemukan di:** Step 1 (2026-08-24), diwarisi backfill 2026-08-07
 **Tag:** `[DIWARISI-SOURCE]`
 **Ref:** `BSL-008`, `F-01` (`doc-dev-backfill/FINDINGS.md`)
@@ -54,6 +58,7 @@
 ---
 
 ### MF-03 — Param `limite_matching_etablissements` hilang di `fetch_previous_page`
+> **Update 2026-10-05:** ✅ FIXED di rilis 18.0.1.0.1 — Prev sekarang mengirim `limite_matching_etablissements=100`; `print()` debug dihapus (lihat MF-16).
 **Ditemukan di:** Step 1 (2026-08-24), diwarisi backfill 2026-08-07
 **Tag:** `[DIWARISI-SOURCE]`
 **Ref:** `BSL-009`, `F-02`
@@ -64,6 +69,7 @@
 ---
 
 ### MF-04 — No-op senyap saat `partner_name` kosong di tengah paginasi
+> **Update 2026-10-05:** tetap dibiarkan (keputusan dev 2026-10-05) — lihat MF-17.
 **Ditemukan di:** Step 1 (2026-08-24), diwarisi backfill 2026-08-07
 **Tag:** `[DIWARISI-SOURCE]`
 **Ref:** `BSL-010`, `F-03`
@@ -74,6 +80,7 @@
 ---
 
 ### MF-05 — Email yang di-skip tidak pernah ditandai processed → re-fetch tanpa henti
+> **Update 2026-10-05:** dikonfirmasi masih ada di kode rilis 18.0 saat review; tetap dibiarkan (keputusan dev 2026-10-05), risiko beban dicatat di MF-17.
 **Ditemukan di:** Step 1 (2026-08-24), diwarisi backfill 2026-08-07
 **Tag:** `[DIWARISI-SOURCE]`
 **Ref:** `BSL-020`, `F-07`
@@ -184,6 +191,65 @@
 **Kontribusi balik ke migration-tool (dicatat di sini, BUKAN ditulis langsung ke `migration-tool/`):** resep GreenMail-incoming di `USAGE_GUIDE.md` §"Testing email nyata" TERBUKTI JALAN APA ADANYA, tidak ada koreksi yang diperlukan — port `{{GREENMAIL_SMTP_PORT}}`/`{{GREENMAIL_IMAP_PORT}}` dipakai `8179`/`8180`, `object_id` di-set ke `res.partner`, auth disabled bekerja seperti didokumentasikan. Layak dipromosikan dari "belum pernah divalidasi" jadi "terbukti jalan, 1 data point" lewat sesi curation terpisah.
 **Catatan housekeeping:** service `greenmail` di `docker-compose.yml` DIHAPUS lagi setelah validasi ini (eksperimen, bukan fixture permanen — sesuai instruksi awal), `fetchmail.server`/`res.partner`/`mail.message` test dibuat langsung di `target_db` TIDAK di-cleanup (database ini murni untuk dev/QA testing, bukan produksi — aman dibiarkan, akan ter-reset kalau `docker compose down -v` dijalankan lagi).
 **Keputusan pemilik modul:** Tidak perlu keputusan — validasi berhasil, tidak ada tindak lanjut wajib.
+
+---
+
+### MF-15 — Select setelah paginasi menimpa partner yang SALAH (= RMV-02 di migrasi 19→20)
+**Ditemukan di:** Review kode rilis 2026-10-05 (sesi review → fix → publish), setelah RMV-02 terbukti live di 20.0
+**Tag:** `[GAP-LAMA]` — diwarisi dari 17.0, bukan regresi migrasi
+**Prioritas:** **Kritis (korupsi data)**
+**Lokasi:** `fr_business_directory/models/siret_wizard.py` — `fetch_next_page`, `fetch_previous_page`
+**Deskripsi:** action yang dikembalikan Next/Prev (reload dialog dengan `res_id` wizard) tidak membawa `context` asal. Dialog hasil reload memakai `active_id` = id wizard, sehingga tombol Select menulis ke `res.partner` ber-id sama dengan id wizard (kontak lain milik orang lain), bukan kontak asal.
+**Bukti:** skrip uji sebelum fix menunjukkan action tanpa `active_id` (id yang dipakai ≠ kontak asal) di 18.0 dan 19.0, dan sudah benar di 20.0. Catatan jujur: korupsi data end-to-end belum direproduksi live di 18/19 sebelum fix — klik Next pada "CARREFOUR" di kode lama justru crash `TypeError` (lihat MF-16), sehingga jalur Select-setelah-Next tidak tercapai di UI; mekanisme terbukti live di 20.0 (RMV-02) dengan kode yang identik.
+**Status:** ✅ FIXED di rilis 18.0.1.0.1 — action membawa `'context': dict(self.env.context)` dan `name`. Verifikasi UI nyata (Playwright, API gouv.fr asli): Next ke halaman 2 → buka hasil → Select; hanya kontak asal yang berubah, tidak ada kontak lain ter-update.
+**Keputusan pemilik modul:** Disetujui dev 2026-10-05 ("jika di 20 sudah di-fix, 18 dan 19 juga di-fix").
+
+---
+
+### MF-16 — Paket ketahanan API & paginasi (= RMV-03/04/05/06 di migrasi 19→20; MF-02/MF-03 (17→18))
+**Ditemukan di:** Review kode rilis 2026-10-05; direproduksi dengan skrip uji sebelum fix di 18.0 dan 19.0 (kode identik)
+**Tag:** `[GAP-LAMA]` (diwarisi dari 17.0)
+**Prioritas:** Sedang
+**Lokasi:** `fr_business_directory/models/siret_wizard.py`, `views/siret_wizard_views.xml`
+**Deskripsi dan bukti sebelum fix:**
+- `_logger` tidak didefinisikan → `NameError` (dialog "Oops") saat API gagal atau struktur `siege` anomali.
+- HTTP 429 dari API gouv.fr tidak ditangani (jatuh ke `NameError` di atas).
+- `libelle_voie: null` → `TypeError` (live: klik Next pada "CARREFOUR" crash di log server); `numero_voie` kosong tampil "None"; `_split_address` tidak aman untuk alamat/kode pos kosong.
+- Next pertama memanggil API 2× (create wizard memicu `default_get` yang query ulang).
+- Judul dialog menjadi "Odoo" setelah Next/Prev.
+- Prev tidak mengirim `limite_matching_etablissements=100` (hasil Prev ≠ Next) dan `print()` debug tertinggal di 5 tempat (F-02, F-04 backfill).
+**Status:** ✅ FIXED di rilis 18.0.1.0.1 — port dari 20.0: `_logger`, retry 429 (Retry-After, maks 2×, ≤5 dtk) + `UserError` berbahasa Inggris, helper `_street_line()` dan penjaga `_split_address`, `default_get` hanya query saat dialog dibuka + `force_save`, `name` pada action paginasi, parameter limite pada Prev, `print()` dihapus. Penyimpanan SIRET tidak diubah (field versi ini dipertahankan).
+**Keputusan pemilik modul:** Disetujui dev 2026-10-05.
+
+---
+
+### MF-17 — Rilis hotfix 18.0.1.0.1 (2026-10-05): ringkasan, bukti uji, yang dibiarkan
+**Ditemukan di:** Sesi review → fix → publish 2026-10-05 (bukan sesi migrasi)
+**Tag:** `[HASIL-BACA]` — catatan rilis
+**Perubahan kode (hanya `fr_business_directory`):** `siret_wizard.py`, `siret_wizard_views.xml` (`force_save` pada read-only field wizard), `__manifest__.py` → `18.0.1.0.1`. `personal_email_usage` tidak berubah (diff terhadap rilis lama kosong).
+**Bukti uji (skrip `odoo shell` yang sama sebelum dan sesudah fix, DB baru, API dimock; tidak ada Python host):**
+| Uji | Sebelum | Sesudah |
+|---|---|---|
+| Alur normal (buka, pilih SIRET) | OK | OK (tidak berubah) |
+| Next/Prev membawa context asal | tidak | ya |
+| API mati | `NameError _logger` | `UserError` jelas |
+| HTTP 429 sekali lalu 200 | `NameError` | pulih lewat retry |
+| Alamat null | `TypeError` | `''` / `'RUE X'` |
+| Panggilan API saat save wizard | 1 | 0 |
+| Prev memakai `limite_matching_etablissements` | tidak | ya |
+| Judul dialog setelah paginasi | kosong | "Search For Companies" |
+UI nyata (Playwright + API asli, kontak "CARREFOUR"): Next → halaman 2 → Select hanya mengubah kontak asal. Upgrade modul tanpa error; log server bersih setelah restart.
+**Belum teruji:** suite test dari branch migrasi tidak dijalankan; lingkungan Enterprise tidak diuji; korupsi data MF-15 tidak direproduksi end-to-end sebelum fix (lihat MF-15).
+**Dibiarkan (keputusan dev 2026-10-05, setelah rekomendasi + pertimbangan risiko):**
+- Next/Prev no-op senyap saat `partner_name` kosong (F-03 backfill / MF-04 17→18) — dialog hanya dibuka dari partner bernama; aman.
+- Soft-dependency `res.country.department` (OCA) tidak di `depends` — kode sudah menjaga lewat cek `ir.model`; aman.
+- `position="replace"` pada field nama di form partner (18.0/19.0; di 20.0 sudah memakai `$0`) — berfungsi; rapuh bila modul lain mengubah field yang sama.
+- `personal_email_usage`: email non-kontak yang di-skip tidak pernah ditandai processed → diunduh ulang tiap cron, dan `processed_message_ids` tumbuh tanpa batas (F-07 backfill / MF-05 17→18, keputusan dev 2026-08-24 "dipertahankan identik"). Data aman; beban naik seiring jumlah email non-kontak. Kandidat rilis tersendiri bila mailbox produksi besar.
+- **[baru, dicatat saja]** loop IMAP `personal_email_usage` mengabaikan `batch_limit` dan memproses semua email UNSEEN dalam satu cron — risiko timeout hanya pada mailbox besar.
+- **[baru, dicatat saja]** filter pengirim memakai `=ilike` dengan alamat mentah: `_` dan `%` bertindak sebagai wildcard (pola yang sama dipakai Odoo core); filter hanya melihat header `From` (tanpa cek SPF/DKIM), jadi pengirim yang memalsukan `From` sebuah kontak bisa masuk ke chatter kontak itu — keterbatasan desain, bergantung pada mail server untuk menolak email palsu.
+- Housekeeping `personal_email_usage` (import tak terpakai, CSV security yatim, `application: True`) dan deprecation warning `self._cr.commit()`.
+**Catatan audit operasional:** tidak ada data tersimpan yang perlu diperbaiki — wizard bersifat transient; perubahan hanya perilaku ke depan. Kontak yang pernah tertimpa lewat bug MF-15 (bila ada) tidak bisa dikenali otomatis dari DB.
+**Hash:** staging/18.0.1.0.1 7adaaad → 8dc995a; 18.0.1.0.1 (rilis) d26185b → f58cde6. Branch hotfix: `hotfix/18.0.1.0.1-siret-wizard`.
 
 ---
 
